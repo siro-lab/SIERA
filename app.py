@@ -18,17 +18,18 @@ st.set_page_config(page_title="SIERA", layout="wide")
 try:
     USERNAME = st.secrets["username"]
     PASSWORD_HASH = st.secrets["password_hash"]
+    secrets_missing = False
 except (KeyError, FileNotFoundError):
-    # Fallback untuk development
+    # Fallback untuk development / deploy tanpa secrets
     USERNAME = "peksiv"
-    PASSWORD_HASH = "e2e73c3ddc6f2e4d3c09d8b8d8b8d8b8d8b8d8b8d8b8d8b8"
+    PASSWORD_HASH = hashlib.sha256("peksiv".encode()).hexdigest()
+    secrets_missing = True
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-    st.session_state.username = ""
-    st.session_state.login_time = None
+st.session_state.setdefault("authenticated", False)
+st.session_state.setdefault("username", "")
+st.session_state.setdefault("login_time", None)
 
-if not st.session_state.authenticated:
+if not st.session_state.get("authenticated", False):
     try:
         with open("PEKS IV Logo Colour.png", "rb") as f:
             login_logo = base64.b64encode(f.read()).decode()
@@ -171,6 +172,11 @@ if not st.session_state.authenticated:
             st.rerun()
         else:
             st.error("Username atau password salah!")
+            if secrets_missing:
+                st.info("Jika belum mengatur Streamlit Secrets, gunakan ID Login: `peksiv` dan Kata sandi: `peksiv`.")
+
+    if not st.session_state.authenticated and secrets_missing:
+        st.warning("Streamlit Secrets belum terpasang. Login default berada pada ID `peksiv` dan kata sandi `peksiv`.")
 
     st.stop()
 
