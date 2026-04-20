@@ -175,7 +175,7 @@ if not st.session_state.get("authenticated", False):
             if secrets_missing:
                 st.info("Jika belum mengatur Streamlit Secrets, gunakan ID Login: `peksiv` dan Kata sandi: `peksiv`.")
 
-    if not st.session_state.authenticated and secrets_missing:
+    if not st.session_state.get("authenticated", False) and secrets_missing:
         st.warning("Streamlit Secrets belum terpasang. Login default berada pada ID `peksiv` dan kata sandi `peksiv`.")
 
     st.stop()
