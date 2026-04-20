@@ -638,8 +638,8 @@ with st.sidebar:
     )
 
     # Show user info
-    if st.session_state.authenticated:
-        st.markdown(f"<div class='sidebar-welcome'>Welcome, <strong>{st.session_state.username}</strong>!</div>", unsafe_allow_html=True)
+    if st.session_state.get("authenticated", False):
+        st.markdown(f"<div class='sidebar-welcome'>Welcome, <strong>{st.session_state.get('username', '')}</strong>!</div>", unsafe_allow_html=True)
         st.markdown("---")
 
     menu = st.radio(
