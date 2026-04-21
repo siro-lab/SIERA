@@ -14,19 +14,22 @@ st.set_page_config(page_title="SIERA", layout="wide")
 # ======================
 # SIMPLE AUTHENTICATION
 # ======================
-# Prioritas: Secrets → Environment Variables (Railway) → Default
+# Prioritas: Environment Variables (Railway) → Secrets (Local) → Default
 secrets_missing = False
-try:
-    USERNAME = st.secrets["username"]
-    PASSWORD_HASH = st.secrets["password_hash"]
-except (KeyError, FileNotFoundError):
-    username_env = os.environ.get("username")
-    password_hash_env = os.environ.get("password_hash")
-    
-    if username_env and password_hash_env:
-        USERNAME = username_env
-        PASSWORD_HASH = password_hash_env
-    else:
+
+# Try environment variables first (Railway)
+username_env = os.environ.get("username")
+password_hash_env = os.environ.get("password_hash")
+
+if username_env and password_hash_env:
+    USERNAME = username_env
+    PASSWORD_HASH = password_hash_env
+else:
+    # Try secrets.toml (local development only)
+    try:
+        USERNAME = st.secrets.get("username", "peksiv")
+        PASSWORD_HASH = st.secrets.get("password_hash", "de614bf29764c5dd46f33d6dfe3d2b5a098a34fc06ad1da36f13987393dd7fd6")
+    except FileNotFoundError:
         USERNAME = "peksiv"
         PASSWORD_HASH = "de614bf29764c5dd46f33d6dfe3d2b5a098a34fc06ad1da36f13987393dd7fd6"
         secrets_missing = True
