@@ -2185,7 +2185,7 @@ if menu == "TLHP PEKS IV":
             st.session_state.selected_tlhp_no = None
 
 # ======================
-# TANYA AI SIERA (SMART + CONTEXT AWARE)
+# TANYA AI SIERA (SMART ML + LOCAL REASONING)
 # ======================
 if menu == "AI SIERA":
     st.markdown(
@@ -2217,83 +2217,104 @@ if menu == "AI SIERA":
         st.session_state.ai_siera_query = query
 
     # ======================
+    # PREPARE DATA (gabung + text)
+    # ======================
+    if "full_text" not in df.columns:
+        def build_text(row):
+            return " ".join([
+                str(row.get("Instansi", "")),
+                str(row.get("Tema", "")),
+                str(row.get("Topik", "")),
+                str(row.get("Temuan", "")),
+                str(row.get("Kondisi/Rekomendasi", "")),
+                str(row.get("Uraian", "")),
+                str(row.get("Tanggapan PEKS IV", "")),
+            ]).lower()
+
+        df["full_text"] = df.apply(build_text, axis=1)
+
+    # ======================
+    # TF-IDF MODEL (init sekali)
+    # ======================
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    if "vectorizer" not in st.session_state:
+        vectorizer = TfidfVectorizer(stop_words="english")
+        tfidf_matrix = vectorizer.fit_transform(df["full_text"])
+
+        st.session_state.vectorizer = vectorizer
+        st.session_state.tfidf_matrix = tfidf_matrix
+    else:
+        vectorizer = st.session_state.vectorizer
+        tfidf_matrix = st.session_state.tfidf_matrix
+
+    # ======================
     # INTENT DETECTION
     # ======================
     def detect_intent(q):
         q = q.lower()
-        if "jumlah" in q or "berapa" in q:
+
+        if any(x in q for x in ["berapa", "jumlah", "total"]):
             return "count"
-        if "ringkas" in q:
+
+        if any(x in q for x in ["ringkas", "summary", "kesimpulan"]):
             return "summary"
-        if "isu" in q or "masalah" in q or "analisis" in q:
+
+        if any(x in q for x in ["isu", "masalah", "analisis", "kenapa"]):
             return "analysis"
-        if "tampilkan" in q or "cari" in q:
-            return "search"
-        return "general"
+
+        return "search"
 
     # ======================
-    # SMART SEARCH + FILTER
+    # ML SEARCH
     # ======================
-    def find_matches(question, df, top_n=5):
+    def find_matches_ml(question, top_n=5):
         question = question.lower()
-        df_filtered = df.copy()
 
-        # ======================
-        # FILTER: TEMA
-        # ======================
-        tema_list = df["Tema"].dropna().str.lower().unique()
-        for t in tema_list:
-            if t in question:
-                df_filtered = df_filtered[df_filtered["Tema"].str.lower() == t]
-                break
+        query_vec = vectorizer.transform([question])
+        similarity = cosine_similarity(query_vec, tfidf_matrix).flatten()
 
-        # ======================
-        # FILTER: INSTANSI
-        # ======================
-        instansi_list = df["Instansi"].dropna().str.lower().unique()
-        for inst in instansi_list:
-            if inst in question:
-                df_filtered = df_filtered[df_filtered["Instansi"].str.lower() == inst]
-                break
+        top_indices = similarity.argsort()[::-1][:top_n]
 
-        # ======================
-        # FILTER: ND
-        # ======================
-        if "nd" in question:
-            df_filtered = df_filtered[
-                df_filtered["ND_Pemeriksaan"].astype(str).str.lower().str.contains(question)
-            ]
-
-        # ======================
-        # KEYWORDS
-        # ======================
-        keywords = [w for w in re.findall(r"\w+", question) if len(w) >= 2]
-
-        weights = {
-            "Instansi": 2,
-            "Tema": 5,
-            "Topik": 3,
-            "Temuan": 2,
-            "Kondisi/Rekomendasi": 1,
-            "Uraian": 1,
-        }
-
+        results = []
         scores = []
 
-        for _, row in df_filtered.iterrows():
-            score = 0
-            for col, w in weights.items():
-                text = str(row.get(col, "")).lower()
-                for kw in keywords:
-                    if kw in text:
-                        score += w
+        for idx in top_indices:
+            if similarity[idx] > 0.1:
+                results.append(df.iloc[idx])
+                scores.append(similarity[idx])
 
-            if score > 0:
-                scores.append((score, row))
+        return results, scores
 
-        scores.sort(key=lambda x: x[0], reverse=True)
+    # ======================
+    # LOCAL REASONING (NARASI)
+    # ======================
+    from collections import Counter
 
-        return [row for _, row in scores[:top_n]]
+    def generate_narrative(matches):
+        if not matches:
+            return "Tidak ditemukan data yang cukup untuk dianalisis."
+
+        tema_counter = Counter([str(r.get("Tema", "")).lower() for r in matches])
+        instansi_counter = Counter([str(r.get("Instansi", "")).lower() for r in matches])
+
+        top_tema = tema_counter.most_common(1)[0][0] if tema_counter else "-"
+        top_instansi = instansi_counter.most_common(1)[0][0] if instansi_counter else "-"
+
+        temuan_text = " ".join([str(r.get("Temuan", "")) for r in matches])
+        words = re.findall(r"\w+", temuan_text.lower())
+
+        common_words = [w for w, _ in Counter(words).most_common(10) if len(w) > 4]
+        isu = ", ".join(common_words[:5])
+
+        return f"""
+Berdasarkan hasil analisis AI terhadap data yang relevan, isu utama terkonsentrasi pada tema '{top_tema}' dengan dominasi instansi '{top_instansi}'.
+
+Pola permasalahan yang muncul berulang berkaitan dengan: {isu}.
+
+Hal ini mengindikasikan adanya kecenderungan permasalahan sistemik yang memerlukan penguatan pada aspek kebijakan, implementasi, serta pengendalian program.
+""".strip()
 
     # ======================
     # EXECUTION
@@ -2302,17 +2323,11 @@ if menu == "AI SIERA":
 
         intent = detect_intent(query)
 
-        # COUNT
         if intent == "count":
-            if "temuan" in query.lower():
-                st.success(f"Jumlah temuan: {df['ID_Temuan'].nunique()}")
-            elif "pemeriksaan" in query.lower() or "nd" in query.lower():
-                st.success(f"Jumlah pemeriksaan (ND): {df['ND_Pemeriksaan'].nunique()}")
-            else:
-                st.info("Spesifikkan: jumlah temuan atau pemeriksaan")
+            st.success(f"Jumlah data: {len(df)}")
 
         else:
-            matches = find_matches(query, df)
+            matches, scores = find_matches_ml(query)
 
             st.markdown("### Jawaban AI SIERA")
 
@@ -2323,35 +2338,30 @@ if menu == "AI SIERA":
                 st.success(f"Ditemukan {len(matches)} hasil relevan")
 
                 # ======================
-                # AI INSIGHT
+                # AI NARRATIVE
                 # ======================
-                temuan_list = [strip_html(r["Temuan"]) for r in matches]
-
-                st.info(
-                    f"AI Insight: Terdapat pola temuan yang berulang, terutama terkait: "
-                    f"{temuan_list[0][:120]}..."
-                )
+                st.info(generate_narrative(matches))
 
                 # ======================
-                # INTERACTIVE RESULT
+                # RESULT DETAIL
                 # ======================
-                for i, row in enumerate(matches, 1):
-                    with st.expander(f"{i}. {row['Instansi']} | {row['Tema']}"):
+                for i, (row, score) in enumerate(zip(matches, scores), 1):
+                    with st.expander(f"{i}. {row['Instansi']} | {row['Tema']} (Score: {round(score,2)})"):
 
-                        st.markdown(f"**ND Pemeriksaan:** {row['ND_Pemeriksaan']}")
-                        st.markdown(f"**Topik:** {row['Topik']}")
+                        st.markdown(f"**ND Pemeriksaan:** {row.get('ND_Pemeriksaan','')}")
+                        st.markdown(f"**Topik:** {row.get('Topik','')}")
 
                         st.markdown("**Temuan:**")
-                        st.write(strip_html(row["Temuan"]))
+                        st.write(strip_html(row.get("Temuan","")))
 
                         st.markdown("**Kondisi/Rekomendasi:**")
-                        st.write(strip_html(row["Kondisi/Rekomendasi"]))
+                        st.write(strip_html(row.get("Kondisi/Rekomendasi","")))
 
                         st.markdown("**Uraian:**")
-                        st.write(strip_html(row["Uraian"]))
+                        st.write(strip_html(row.get("Uraian","")))
 
                         st.markdown("**Tanggapan PEKS IV:**")
-                        st.write(strip_html(row["Tanggapan PEKS IV"]))
+                        st.write(strip_html(row.get("Tanggapan PEKS IV","")))
 
     if df.empty:
         st.warning("Data belum tersedia.")
