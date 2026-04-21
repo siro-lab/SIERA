@@ -27,8 +27,8 @@ try:
         USERNAME = st.secrets["username"]
         PASSWORD_HASH = st.secrets["password_hash"]
 except (KeyError, FileNotFoundError):
-    USERNAME = "peksiv"
-    PASSWORD_HASH = hashlib.sha256("peksiv".encode()).hexdigest()
+    USERNAME = "sirojul"
+    PASSWORD_HASH = "de614bf29764c5dd46f33d6dfe3d2b5a098a34fc06ad1da36f13987393dd7fd6"
     secrets_missing = True
 
 st.session_state.setdefault("authenticated", False)
@@ -179,10 +179,10 @@ if not st.session_state.get("authenticated", False):
         else:
             st.error("Username atau password salah!")
             if secrets_missing:
-                st.info("Jika belum mengatur Streamlit Secrets, gunakan ID Login: `peksiv` dan Kata sandi: `peksiv`.")
+                st.info("Jika belum mengatur Streamlit Secrets, gunakan ID Login: `sirojul` dan Kata sandi: `latsar`.")
 
     if not st.session_state.get("authenticated", False) and secrets_missing:
-        st.warning("Streamlit Secrets belum terpasang. Login default berada pada ID `peksiv` dan kata sandi `peksiv`.")
+        st.warning("Streamlit Secrets belum terpasang. Login default berada pada ID `sirojul` dan kata sandi `latsar`.")
 
     st.stop()
 
