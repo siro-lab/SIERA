@@ -49,19 +49,37 @@ if not st.session_state.get("authenticated", False):
         """
         <style>
         * { box-sizing: border-box; }
-        html, body, .stApp, .main, .block-container {
+        html, body {
             background: radial-gradient(circle at top, #eef2ff 0%, #dbeafe 25%, #f8fafc 55%, #ffffff 100%) !important;
             color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
             min-height: 100vh !important;
         }
-        .appview-container { background: radial-gradient(circle at top, #eef2ff 0%, #dbeafe 25%, #f8fafc 55%, #ffffff 100%) !important; }
-        .main { 
-            background: transparent !important; 
-            padding: 0 !important;
+        .stApp {
+            background: radial-gradient(circle at top, #eef2ff 0%, #dbeafe 25%, #f8fafc 55%, #ffffff 100%) !important;
+            width: 100vw !important;
+            min-height: 100vh !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            min-height: 100vh !important;
+        }
+        .appview-container { 
+            background: radial-gradient(circle at top, #eef2ff 0%, #dbeafe 25%, #f8fafc 55%, #ffffff 100%) !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .main { 
+            background: transparent !important; 
+            padding: 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
         }
         .block-container {
             background: transparent !important;
@@ -70,7 +88,7 @@ if not st.session_state.get("authenticated", False):
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            min-height: 100vh !important;
+            width: 100% !important;
             max-width: 100% !important;
         }
         .stForm, form {
@@ -81,6 +99,7 @@ if not st.session_state.get("authenticated", False):
             background: rgba(255, 255, 255, 0.98) !important;
             border: 1px solid rgba(148, 163, 184, 0.28) !important;
             box-shadow: 0 36px 70px rgba(15, 23, 42, 0.12) !important;
+            margin: 0 auto !important;
         }
         .stForm > div {
             gap: 14px !important;
