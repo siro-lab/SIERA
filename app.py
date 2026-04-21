@@ -14,16 +14,20 @@ st.set_page_config(page_title="SIERA", layout="wide")
 # ======================
 # SIMPLE AUTHENTICATION
 # ======================
-# Baca dari environment variables (Streamlit Secrets)
+# Prioritas: Environment Variables (Railway) → Secrets → Default
 try:
-    USERNAME = st.secrets["username"]
-    PASSWORD_HASH = st.secrets["password_hash"]
-    secrets_missing = False
+    username_env = os.environ.get("username")
+    password_hash_env = os.environ.get("password_hash")
+    
+    if username_env and password_hash_env:
+        USERNAME = username_env
+        PASSWORD_HASH = password_hash_env
+    else:
+        USERNAME = st.secrets["username"]
+        PASSWORD_HASH = st.secrets["password_hash"]
 except (KeyError, FileNotFoundError):
-    # Fallback untuk development / deploy tanpa secrets
     USERNAME = "peksiv"
     PASSWORD_HASH = hashlib.sha256("peksiv".encode()).hexdigest()
-    secrets_missing = True
 
 st.session_state.setdefault("authenticated", False)
 st.session_state.setdefault("username", "")
@@ -564,6 +568,22 @@ table.detail-table td {
     font-family: "Inter", "Segoe UI", Roboto, sans-serif;
     font-size: 13px;
     line-height: 1.6;
+}
+
+/* Main content area - ensure light background */
+main, .main, [data-testid="stAppViewContainer"] {
+    background: #ffffff !important;
+}
+
+.block-container {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* Ensure all text is dark on light background */
+body, .stApp {
+    background: #ffffff !important;
+    color: #0f172a !important;
 }
 </style>
 """,
