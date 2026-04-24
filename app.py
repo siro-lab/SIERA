@@ -2213,9 +2213,6 @@ if menu == "AI SIERA":
         submit = st.form_submit_button("Send")
     st.markdown("</div></div>", unsafe_allow_html=True)
 
-    if submit:
-        st.session_state.ai_siera_query = query
-
     # ======================
     # PREPARE DATA (gabung + text)
     # ======================
