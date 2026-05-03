@@ -219,6 +219,7 @@ if not st.session_state.get("authenticated", False):
 # ======================
 # CSS
 # ======================
+
 st.markdown(
     """
 <style>
@@ -497,62 +498,79 @@ section[data-testid="stSidebar"] div[role="radiogroup"] label * {
     .chat-container {
         position: relative;
         width: 100%;
-        max-width: 1080px;
-        margin: 0 auto;
-        padding-bottom: 220px;
+        padding-bottom: 200px;
     }
 
     .chat-form {
         position: fixed;
-        bottom: 24px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        width: min(1080px, calc(100% - 48px));
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        border-radius: 28px;
-        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
-        padding: 24px;
-        z-index: 999;
+        width: calc(100% - 40px);
+        max-width: 900px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 16px 20px;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
     }
 
-    .chat-form .stTextArea > div {
-        background: #f8fafc !important;
-        border: 1px solid rgba(148, 163, 184, 0.24) !important;
-        border-radius: 22px !important;
-        padding: 16px 18px !important;
+    .chat-form .stTextInput > div {
+        margin-bottom: 0 !important;
     }
 
-    .chat-form .stTextArea textarea {
-        min-height: 120px !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        font-size: 16px !important;
-        color: #0f172a !important;
-        padding: 0 !important;
-    }
-
-    .chat-form .stTextArea textarea::placeholder {
-        color: #94a3b8 !important;
-    }
-
-    .chat-form .stTextArea label {
+    .chat-form .stTextInput > div > label {
         display: none !important;
     }
 
-    .chat-form .stButton button {
-        background-color: #2563eb !important;
-        color: white !important;
-        border-radius: 999px !important;
-        padding: 10px 24px !important;
-        font-weight: 600 !important;
-        border: none !important;
-        margin-top: 12px !important;
+    .chat-form .stTextInput > div > div > input {
+        background: #f3f4f6 !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 16px !important;
+        padding: 14px 18px !important;
+        font-size: 15px !important;
+        color: #1f2937 !important;
+        width: 100% !important;
     }
 
-    .chat-form .stButton button:hover {
-        background-color: #1d4ed8 !important;
+    .chat-form .stTextInput > div > div > input::placeholder {
+        color: #9ca3af !important;
+    }
+
+    .chat-form .stTextInput > div > div > input:focus {
+        outline: none !important;
+        border: 1px solid #3b82f6 !important;
+        background: #ffffff !important;
+    }
+
+    .chat-form .stFormSubmitButton > button {
+        background: transparent !important;
+        color: #3b82f6 !important;
+        border: none !important;
+        cursor: pointer !important;
+        font-size: 20px !important;
+        padding: 8px 12px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .chat-form .stFormSubmitButton > button:hover {
+        color: #2563eb !important;
+        background: #f3f4f6 !important;
+        border-radius: 8px !important;
+    }
+
+    .chat-form form {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .chat-form .stColumn {
+        padding: 0 4px !important;
     }
 
     .heading-deco {
@@ -667,6 +685,165 @@ def get_next_temuan_number(nd_value, dataframe):
             continue
     return max(nums, default=0) + 1
 
+# ======================
+# POPUP DIALOG FUNCTIONS
+# ======================
+
+@st.dialog("➕ Tambah Pemeriksaan Baru", width="large")
+def popup_tambah_pemeriksaan():
+    # Gunakan variabel lokal agar tidak konflik dengan global
+    st.info("Tambah data pemeriksaan baru. Tambah temuan dan kondisi sesuai kebutuhan.")
+    
+    col1f, col2f = st.columns(2)
+    with col1f:
+        tgl = st.date_input("Tanggal", value=date.today())
+        inst = st.text_input("Instansi")
+        tm = st.text_input("Tema")
+        nd_p = st.text_input("Nomor ND Pemeriksaan")
+        nd_t = st.text_input("Nomor ND Tanggapan")
+        tpk = st.text_area("Topik", height=100)
+        dok = st.text_input("Dokumen Pendukung (URL)")
+
+    with col2f:
+        if st.button("➕ Tambah Temuan Baru"):
+            st.session_state.new_findings.append({
+                "temuan": "",
+                "conditions": [{"kondisi": "", "uraian": "", "tanggapan": ""}]
+            })
+
+        for fi, finding in enumerate(st.session_state.new_findings):
+            with st.expander(f"Temuan {fi+1}", expanded=True):
+                finding["temuan"] = st.text_area("Temuan", value=finding["temuan"], key=f"p_temuan_{fi}")
+                for ci, condition in enumerate(finding["conditions"]):
+                    st.markdown(f"**Kondisi {ci+1}**")
+                    condition["kondisi"] = st.text_area("Kondisi", value=condition["kondisi"], key=f"p_kondisi_{fi}_{ci}")
+                    condition["uraian"] = st.text_area("Uraian", value=condition["uraian"], key=f"p_uraian_{fi}_{ci}")
+                    condition["tanggapan"] = st.text_area("Tanggapan", value=condition["tanggapan"], key=f"p_tanggapan_{fi}_{ci}")
+                
+                if st.button("➕ Tambah Kondisi", key=f"p_btn_cond_{fi}"):
+                    finding["conditions"].append({"kondisi": "", "uraian": "", "tanggapan": ""})
+                    st.rerun()
+
+    if st.button("💾 Simpan Pemeriksaan", use_container_width=True, type="primary"):
+        if inst and nd_p:
+            next_t = get_next_temuan_number(nd_p, df)
+            for fi, finding in enumerate(st.session_state.new_findings, start=1):
+                id_t = f"{next_t + fi - 1}.0"
+                for ci, cond in enumerate(finding["conditions"], start=1):
+                    new_row = {
+                        "Tanggal": tgl.isoformat(), "Instansi": inst, "Tema": tm, "Topik": tpk,
+                        "Nomor ND Pemeriksaan": nd_p, "Nomor ND Tanggapan": nd_t, "ID_Temuan": id_t,
+                        "Temuan": finding["temuan"], "ID_Kondisi": f"{next_t + fi - 1}.{ci}",
+                        "Kondisi/Rekomendasi": cond["kondisi"], "Uraian": cond["uraian"],
+                        "Tanggapan PEKS IV": cond["tanggapan"], "Dokumen Pendukung": dok
+                    }
+                    save_row_to_csv(new_row)
+            st.success("Berhasil disimpan!")
+            st.rerun()
+
+@st.dialog("📋 Detail Pemeriksaan", width="large")
+def popup_detail_pemeriksaan(selected_nd):
+    # Ambil data spesifik berdasarkan ND
+    p_info = df.loc[df["Nomor ND Pemeriksaan"] == selected_nd].iloc[0]
+    det_df = df.loc[df["Nomor ND Pemeriksaan"] == selected_nd, 
+                    ["Temuan", "Kondisi/Rekomendasi", "Uraian", "Tanggapan PEKS IV"]].copy()
+    
+    if not det_df.empty:
+        det_df = det_df.astype(str).map(normalize_detail_text)
+        
+        st.markdown(f"### {p_info['Topik']}")
+        st.markdown("---")
+        
+        for _, row in det_df.iterrows():
+            with st.container(border=True):
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown("#### 🔍 Temuan")
+                    st.markdown(row["Temuan"], unsafe_allow_html=True)
+                    
+                    # Garis pemisah antara Temuan dan Rekomendasi
+                    st.markdown("---")
+                    
+                    st.markdown("#### 💡 Kondisi/Rekomendasi")
+                    st.markdown(row["Kondisi/Rekomendasi"], unsafe_allow_html=True)
+                with col_b:
+                    st.markdown("#### 📝 Uraian")
+                    st.markdown(row["Uraian"], unsafe_allow_html=True)
+                    
+                    # Garis pemisah antara Uraian dan Tanggapan
+                    st.markdown("---")
+                    
+                    st.markdown("#### ✅ Tanggapan PEKS IV")
+                    st.markdown(row["Tanggapan PEKS IV"], unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+
+@st.dialog("➕ Tambah TLHP Baru", width="large")
+def popup_tambah_tlhp():
+    with st.form("form_tlhp_popup", clear_on_submit=True):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            nama = st.text_input("Nama Laporan")
+            tgl = st.date_input("Tanggal Laporan")
+            thn = st.number_input("Tahun", value=2026)
+            peng = st.text_input("Pengawas")
+        with c2:
+            tem = st.text_area("Temuan")
+            rek = st.text_area("Rekomendasi")
+            kode = st.text_input("Kode Rekomendasi")
+        with c3:
+            status = st.selectbox("Status", ["Belum Dimulai", "Dalam Proses", "Selesai"])
+            dl = st.date_input("Deadline")
+            link = st.text_input("Link Data Dukung")
+        
+        if st.form_submit_button("Simpan TLHP", use_container_width=True):
+            next_no = len(df_tlhp) + 1
+            row = {
+                "No": str(next_no), "Nama Laporan": nama, "Tgl Laporan": str(tgl), "Tahun": str(thn),
+                "Pengawas": peng, "Temuan": tem, "Rekomendasi": rek, "Kode Rekomendasi": kode,
+                "Deadline": str(dl), "Status Penyelesaian": status, "Data Dukung (LinkPortal)": link
+            }
+            save_tlhp_row_to_csv(row)
+            st.success("TLHP Tersimpan!")
+            st.rerun()
+
+@st.dialog("📋 Detail Tindak Lanjut (TLHP)", width="large")
+def popup_detail_tlhp(selected_name):
+    detail_df = df_tlhp[df_tlhp["Nama Laporan"].astype(str).str.strip() == selected_name.strip()].copy()
+    
+    if not detail_df.empty:
+        detail_df = detail_df.astype(str).map(normalize_detail_text)
+        
+        st.markdown(f"### {selected_name}")
+        st.markdown("---")
+        
+        # Penomoran Temuan dengan gaya Box
+        for i, (_, row) in enumerate(detail_df.iterrows(), start=1):
+            # Badge Box untuk penanda nomor temuan
+            st.markdown(f"""
+                <div style='background-color: #1e3a8a; color: white; padding: 5px 15px; border-radius: 5px; display: inline-block; font-weight: 700; margin-bottom: 10px;'>
+                    TEMUAN {i}
+                </div>
+            """, unsafe_allow_html=True)
+            
+            with st.container(border=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.markdown("**🔍 Temuan**")
+                    st.markdown(row.get("Temuan", "-"), unsafe_allow_html=True)
+                    st.markdown("---")
+                    st.markdown("**💡 Rekomendasi**")
+                    st.markdown(row.get("Rekomendasi", "-"), unsafe_allow_html=True)
+                
+                with c2:
+                    st.markdown("**📝 Rencana Aksi**")
+                    st.markdown(row.get("Rencana Aksi", "-"), unsafe_allow_html=True)
+                    st.markdown("---")
+                    st.markdown("**✅ Progress Pelaksanaan**")
+                    st.markdown(row.get("Progress Pelaksanaan Rencana Aksi", "-"), unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.markdown(f"**🔗 Data Dukung:** {row.get('Data Dukung (LinkPortal)', '-')}", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
 # ======================
 # SIDEBAR
@@ -1071,249 +1248,124 @@ if menu == "Beranda":
 # ======================
 
 # ======================
-# FILTER PEMERIKSAAN
+# DAFTAR PEMERIKSAAN & FILTER
 # ======================
 if menu == "Daftar Pemeriksaan":
     st.markdown(
-        """
+       """
         <div class='page-section-card'>
             <div class='page-heading'>
-                <h1>Daftar Pemeriksaan</h1>
-                <p>Pemeriksaan yang melibatkan PEKS IV berupa rapat pemeriksaan, permintaan data dan informasi, serta follow up LHP.</p>
+                <h1 style='font-size: 32px; font-weight: 800;'>Daftar Pemeriksaan</h1>
+                <p style='font-size: 16px; color: #4b5563;'>Basis data koordinasi pemeriksaan, permintaan informasi, serta tindak lanjut Laporan Hasil Pemeriksaan (LHP).</p>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 2], gap="small")
-    with col1:
-        instansi = st.selectbox(
-            "", ["Instansi"] + sorted(df["Instansi"].dropna().unique()), label_visibility="collapsed"
-        )
-    with col2:
-        tema = st.selectbox(
-            "", ["Tema"] + sorted(df["Tema"].dropna().unique()), label_visibility="collapsed"
-        )
-    
-    with col3:
-        dari_tanggal = st.date_input("Dari", value=None, label_visibility="collapsed")
-    
-    with col4:
-        sampai_tanggal = st.date_input("Sampai", value=None, label_visibility="collapsed")
-    
-    with col5:
-        st.markdown("")  # Spacer
-    
-    with col6:
-        st.markdown("")  # Spacer
+    # --- TOMBOL TAMBAH (POSISI ATAS) ---
+    col_btn_1, col_btn_2 = st.columns([8, 2])
+    with col_btn_2:
+        st.markdown("<div class='col-button-green'>", unsafe_allow_html=True)
+        if st.button("➕ Tambah Pemeriksaan", key="btn_tambah_pemeriksaan_top", use_container_width=True):
+            if "new_findings" not in st.session_state:
+                st.session_state.new_findings = [{"temuan": "", "conditions": [{"kondisi": "", "uraian": "", "tanggapan": ""}]}]
+            popup_tambah_pemeriksaan()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    col1b, col2b = st.columns([8, 2], gap="large")
-    with col1b:
+    # --- AREA FILTER DATA (COMPACT VERSION) ---
+    with st.container(border=True):
+        # Header kecil agar hemat ruang
+        st.markdown("<h6 style='margin-bottom: -10px; font-size: 14px;'>🔍 Filter Data</h6>", unsafe_allow_html=True)
+        
+        # Baris Filter: Kita buat labelnya masuk ke dalam (collapsed) atau pakai font kecil
+        c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1], gap="small")
+        with c1:
+            instansi_sel = st.selectbox("Instansi", ["Instansi"] + sorted(df["Instansi"].dropna().unique()), label_visibility="visible")
+        with c2:
+            tema_sel = st.selectbox("Tema", ["Tema"] + sorted(df["Tema"].dropna().unique()), label_visibility="visible")
+        with c3:
+            dari_tanggal = st.date_input("Dari", value=None)
+        with c4:
+            sampai_tanggal = st.date_input("Sampai", value=None)
+
+        # Baris Urutan: Dibuat satu baris tipis
+        st.markdown("<div style='margin-top: -15px; border-top: 1px solid #f1f5f9; padding-top: 10px;'></div>", unsafe_allow_html=True)
+        
         sort_order = st.radio(
-            "Urutkan berdasarkan tanggal",
-            ["Terbaru ke Terlama", "Terlama ke Terbaru"],
+            "**Urutan:**",
+            ["Terbaru", "Terlama"],
             index=0,
             horizontal=True,
             key="sort_pemeriksaan_order",
-            label_visibility="visible",
         )
-    with col2b:
-        st.markdown("<div class='col-button-green'>", unsafe_allow_html=True)
-        if st.button("➕ Tambah Pemeriksaan", key="btn_tambah_pemeriksaan", use_container_width=True):
-            st.session_state.show_add_form = True
-            st.session_state.new_findings = [
-                {
-                    "temuan": "",
-                    "conditions": [
-                        {"kondisi": "", "uraian": "", "tanggapan": ""}
-                    ],
-                }
-            ]
-        st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- LOGIKA FILTER DATA ---
     df_filter = df.copy()
-    if instansi != "Instansi":
-        df_filter = df_filter[df_filter["Instansi"] == instansi]
-    if tema != "Tema":
-        df_filter = df_filter[df_filter["Tema"] == tema]
+    if instansi_sel != "Instansi":
+        df_filter = df_filter[df_filter["Instansi"] == instansi_sel]
+    if tema_sel != "Tema":
+        df_filter = df_filter[df_filter["Tema"] == tema_sel]
     
-    # Filter by date range
     if dari_tanggal is not None or sampai_tanggal is not None:
         df_filter["Tanggal"] = pd.to_datetime(df_filter["Tanggal"], errors="coerce")
         if dari_tanggal is not None:
             df_filter = df_filter[df_filter["Tanggal"] >= pd.to_datetime(dari_tanggal)]
         if sampai_tanggal is not None:
             df_filter = df_filter[df_filter["Tanggal"] <= pd.to_datetime(sampai_tanggal)]
+
+    # ======================
+    # DATA PEMERIKSAAN (TABEL) - ULTRA PREMIUM UI
+    # ======================
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    st.session_state.selected_nd = None
-    if "show_add_form" not in st.session_state:
-        st.session_state.show_add_form = False
-    if "new_findings" not in st.session_state:
-        st.session_state.new_findings = [
-            {
-                "temuan": "",
-                "conditions": [
-                    {"kondisi": "", "uraian": "", "tanggapan": ""}
-                ],
+    # 1. Heading Utama (Clean & Bold)
+    st.markdown("""
+        <div style='background: #ffffff; padding: 10px 0px; border-bottom: 3px solid #1e3a8a; margin-bottom: 25px;'>
+            <h2 style='color: #1e3a8a; margin: 0; font-family: "Inter", sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;'>
+                📋 Data Pemeriksaan
+            </h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # 2. CSS Global (Force Font Inter & Card Styling)
+    # 2. CSS Terisolasi (Hanya untuk konten Tabel Daftar Pemeriksaan)
+    st.markdown("""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+            
+            /* Targetkan hanya elemen di dalam area konten utama, bukan Sidebar */
+            [data-testid="stAppViewContainer"] {
+                font-family: 'Inter', sans-serif !important;
             }
-        ]
 
-    if st.session_state.show_add_form:
-        st.info("Tambah data pemeriksaan baru. Tambah temuan dan kondisi sesuai kebutuhan.")
+            /* Gunakan kelas khusus agar tidak bentrok dengan card di Beranda */
+            .pemeriksaan-card-premium {
+                background: white;
+                border: 1px solid #f1f5f9;
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 10px;
+                transition: all 0.3s ease;
+            }
 
-        col1f, col2f = st.columns(2)
-        with col1f:
-            tanggal = st.date_input("Tanggal", value=date.today())
-            instansi = st.text_input("Instansi", key="instansi")
-            tema = st.text_input("Tema", key="tema")
-            nomor_nd_pemeriksaan = st.text_input("Nomor ND Pemeriksaan", key="nomor_nd_pemeriksaan")
-            nomor_nd_tanggapan = st.text_input("Nomor ND Tanggapan", key="nomor_nd_tanggapan")
-            topik = st.text_area("Topik", height=140, key="topik")
-            dokumen = st.text_input("Dokumen Pendukung (URL)", key="dokumen")
+            .text-premium-main {
+                font-size: 16px !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+            }
 
-        with col2f:
-            if st.button("➕ Tambah Temuan", key="add_temuan"):
-                st.session_state.new_findings.append(
-                    {
-                        "temuan": "",
-                        "conditions": [
-                            {"kondisi": "", "uraian": "", "tanggapan": ""}
-                        ],
-                    }
-                )
+            .text-premium-sub {
+                font-size: 16px !important;
+                font-weight: 400 !important;
+                color: #334155 !important;
+                line-height: 1.5;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-            for fi, finding in enumerate(st.session_state.new_findings):
-                with st.expander(f"Temuan {fi+1}", expanded=True):
-                    finding["temuan"] = st.text_area(
-                        "Temuan",
-                        value=finding["temuan"],
-                        key=f"temuan_{fi}",
-                        height=120,
-                    )
-
-                    for ci, condition in enumerate(finding["conditions"]):
-                        st.markdown(f"**Kondisi {ci+1}**")
-                        condition["kondisi"] = st.text_area(
-                            "Kondisi/Rekomendasi",
-                            value=condition["kondisi"],
-                            key=f"kondisi_{fi}_{ci}",
-                            height=100,
-                        )
-                        condition["uraian"] = st.text_area(
-                            "Uraian",
-                            value=condition["uraian"],
-                            key=f"uraian_{fi}_{ci}",
-                            height=100,
-                        )
-                        condition["tanggapan"] = st.text_area(
-                            "Tanggapan PEKS IV",
-                            value=condition["tanggapan"],
-                            key=f"tanggapan_{fi}_{ci}",
-                            height=100,
-                        )
-
-                    if st.button("➕ Tambah Kondisi", key=f"add_condition_{fi}"):
-                        st.session_state.new_findings[fi]["conditions"].append(
-                            {"kondisi": "", "uraian": "", "tanggapan": ""}
-                        )
-
-        col_left, col_center, col_right = st.columns([1, 1, 1])
-        with col_center:
-            save_pressed = st.button("Simpan Pemeriksaan", key="save_pemeriksaan")
-        with col_right:
-            cancel_pressed = st.button("Batal", key="cancel_pemeriksaan")
-
-        if cancel_pressed:
-            st.session_state.show_add_form = False
-            st.session_state.new_findings = [
-                {
-                    "temuan": "",
-                    "conditions": [
-                        {"kondisi": "", "uraian": "", "tanggapan": ""}
-                    ],
-                }
-            ]
-            st.rerun()
-
-        if save_pressed:
-            if not instansi.strip():
-                st.error("Instansi harus diisi.")
-            elif not tema.strip():
-                st.error("Tema harus diisi.")
-            elif not nomor_nd_pemeriksaan.strip():
-                st.error("ND Pemeriksaan harus diisi.")
-            else:
-                next_temuan = get_next_temuan_number(nomor_nd_pemeriksaan, df)
-                new_rows = []
-
-                for fi, finding in enumerate(st.session_state.new_findings, start=1):
-                    if not finding["temuan"].strip():
-                        continue
-
-                    id_temuan = f"{next_temuan + fi - 1}.0"
-                    for ci, condition in enumerate(finding["conditions"], start=1):
-                        if not any(
-                            [
-                                condition["kondisi"].strip(),
-                                condition["uraian"].strip(),
-                                condition["tanggapan"].strip(),
-                            ]
-                        ):
-                            continue
-
-                        new_rows.append(
-                            {
-                                "Tanggal": tanggal.isoformat(),
-                                "Instansi": instansi,
-                                "Tema": tema,
-                                "Topik": topik,
-                                "Nomor ND Pemeriksaan": nomor_nd_pemeriksaan,
-                                "Nomor ND Tanggapan": nomor_nd_tanggapan,
-                                "ID_Temuan": id_temuan,
-                                "Temuan": finding["temuan"],
-                                "ID_Kondisi": f"{next_temuan + fi - 1}.{ci}",
-                                "Kondisi/Rekomendasi": condition["kondisi"],
-                                "Uraian": condition["uraian"],
-                                "Tanggapan PEKS IV": condition["tanggapan"],
-                                "Dokumen Pendukung": dokumen,
-                            }
-                        )
-
-                if new_rows:
-                    try:
-                        for row in new_rows:
-                            save_row_to_csv(row)
-                        # Reload df dari CSV untuk memastikan update
-                        df = pd.read_csv(DATA_PATH)
-                        df.columns = df.columns.str.strip()
-                        st.success("Data pemeriksaan baru berhasil ditambahkan.")
-                        st.session_state.show_add_form = False
-                        st.session_state.new_findings = [
-                            {
-                                "temuan": "",
-                                "conditions": [
-                                    {"kondisi": "", "uraian": "", "tanggapan": ""}
-                                ],
-                            }
-                        ]
-                        st.rerun()  # Gunakan st.rerun() untuk refresh UI
-                    except Exception as e:
-                        st.error(f"Gagal menyimpan data: {e}")
-                else:
-                    st.error(
-                        "Tambahkan minimal satu kondisi pada setiap temuan yang ingin disimpan."
-                    )
-
-# ======================
-# DATA PEMERIKSAAN
-# ======================
-
-
-    st.markdown("### Data Pemeriksaan")
-
+    # Logika Pengurutan
     ascending_date = False if sort_order == "Terbaru ke Terlama" else True
-
     df_summary = df_filter.copy()
     df_summary["Tanggal_Parsed"] = pd.to_datetime(df_summary["Tanggal"], errors="coerce")
     df_summary = (
@@ -1325,1040 +1377,343 @@ if menu == "Daftar Pemeriksaan":
         .copy()
     )
 
-    if "pemeriksaan_page" not in st.session_state:
-        st.session_state.pemeriksaan_page = 1
-
+    # Paginasi
     items_per_page = 10
-    total_items = len(df_summary)
-    total_pages = max(1, (total_items + items_per_page - 1) // items_per_page)
-    st.session_state.pemeriksaan_page = min(max(1, st.session_state.pemeriksaan_page), total_pages)
-
+    total_pages = max(1, (len(df_summary) + items_per_page - 1) // items_per_page)
+    if "pemeriksaan_page" not in st.session_state: st.session_state.pemeriksaan_page = 1
+    
     start_idx = (st.session_state.pemeriksaan_page - 1) * items_per_page
-    end_idx = start_idx + items_per_page
-    page_df = df_summary.iloc[start_idx:end_idx]
+    page_df = df_summary.iloc[start_idx : start_idx + items_per_page]
 
     if df_summary.empty:
-        st.info("Tidak ada data pemeriksaan untuk filter ini.")
+        st.info("Data tidak ditemukan.")
     else:
-        # CSS for table styling - matching TLHP table style
+        # 3. HEADER TABEL SOLID (Navy Blue Background)
         st.markdown("""
-        <style>
-            .pemeriksaan-table-container {
-                max-height: 500px;
-                overflow-y: auto;
-                border: 1px solid #e5e5e5;
-                border-radius: 8px;
-                padding-right: 5px;
-            }
-            .pemeriksaan-table-container::-webkit-scrollbar {
-                width: 8px;
-            }
-            .pemeriksaan-table-container::-webkit-scrollbar-track {
-                background: #f1f1f1;
-                border-radius: 8px;
-            }
-            .pemeriksaan-table-container::-webkit-scrollbar-thumb {
-                background: #c1c1c1;
-                border-radius: 8px;
-            }
-            .pemeriksaan-table-container::-webkit-scrollbar-thumb:hover {
-                background: #888;
-            }
-            .pemeriksaan-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-family: "Segoe UI", Roboto, sans-serif;
-                font-size: 14px;
-                margin-bottom: 20px;
-            }
-            .pemeriksaan-table th {
-                background: #f5f5f5;
-                padding: 14px 12px;
-                text-align: left;
-                font-weight: 600;
-                color: #1a1a1a;
-                border-bottom: 2px solid #e5e5e5;
-            }
-            .pemeriksaan-table td {
-                padding: 14px 12px;
-                border-bottom: 1px solid #e5e5e5;
-                color: #333;
-            }
-            .pemeriksaan-table tbody tr:hover {
-                background: #fafafa;
-            }
-        </style>
-        <div class="pemeriksaan-table-container">
+            <div style='background-color: #1e3a8a; padding: 15px; border-radius: 10px 10px 0 0; border: 1px solid #1e3a8a;'>
+                <div style='display: flex; flex-direction: row; align-items: center;'>
+                    <div style='flex: 0.5; color: white; font-weight: 700; font-size: 13px; text-align: center;'>NO</div>
+                    <div style='flex: 1.2; color: white; font-weight: 700; font-size: 13px;'>TANGGAL</div>
+                    <div style='flex: 1.3; color: white; font-weight: 700; font-size: 13px;'>INSTANSI</div>
+                    <div style='flex: 1.8; color: white; font-weight: 700; font-size: 13px;'>ND TANGGAPAN</div>
+                    <div style='flex: 1.3; color: white; font-weight: 700; font-size: 13px;'>TEMA</div>
+                    <div style='flex: 2.7; color: white; font-weight: 700; font-size: 13px;'>TOPIK</div>
+                    <div style='flex: 0.7; color: white; font-weight: 700; font-size: 13px; text-align: center;'>DETAIL</div>
+                    <div style='flex: 0.7; color: white; font-weight: 700; font-size: 13px; text-align: center;'>FILE</div>
+                </div>
+            </div>
         """, unsafe_allow_html=True)
 
-        # Create header using columns for proper alignment
-        header_cols = st.columns([0.6, 1.0, 1.0, 1.6, 1.0, 2.2, 0.6, 0.6])
-        
-        header_style = "font-weight: 600; color: #1a1a1a; font-size: 14px; text-align: center; padding: 10px 0; border-bottom: 2px solid #e5e5e5;"
-        left_header_style = "font-weight: 600; color: #1a1a1a; font-size: 14px; text-align: left; padding: 10px 0; border-bottom: 2px solid #e5e5e5;"
-        
-        with header_cols[0]:
-            st.markdown(f"<div style='{header_style}'>No.</div>", unsafe_allow_html=True)
-        with header_cols[1]:
-            st.markdown(f"<div style='{header_style}'>Tanggal</div>", unsafe_allow_html=True)
-        with header_cols[2]:
-            st.markdown(f"<div style='{header_style}'>Instansi</div>", unsafe_allow_html=True)
-        with header_cols[3]:
-            st.markdown(f"<div style='{left_header_style}'>ND Tanggapan</div>", unsafe_allow_html=True)
-        with header_cols[4]:
-            st.markdown(f"<div style='{left_header_style}'>Tema</div>", unsafe_allow_html=True)
-        with header_cols[5]:
-            st.markdown(f"<div style='{left_header_style}'>Topik</div>", unsafe_allow_html=True)
-        with header_cols[6]:
-            st.markdown(f"<div style='{header_style}'>Detail</div>", unsafe_allow_html=True)
-        with header_cols[7]:
-            st.markdown(f"<div style='{header_style}'>Dokumen</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
+        # 4. ISI DATA (Premium Cards)
         for row_num, (_, row) in enumerate(page_df.iterrows(), start=1):
-            display_num = start_idx + row_num
-            cols = st.columns([0.6, 1.0, 1.0, 1.6, 1.0, 2.2, 0.6, 0.6])
+            idx = start_idx + row_num
+            
+            with st.container():
+                cols = st.columns([0.5, 1.2, 1.3, 1.8, 1.3, 2.7, 0.7, 0.7])
+                
+                cols[0].markdown(f"<div class='text-premium-main' style='text-align: center;'>{idx}</div>", unsafe_allow_html=True)
+                cols[1].markdown(f"<div class='text-premium-sub'>{row['Tanggal']}</div>", unsafe_allow_html=True)
+                cols[2].markdown(f"<div class='text-premium-main' style='color: #1d4ed8;'>{row['Instansi']}</div>", unsafe_allow_html=True)
+                cols[3].markdown(f"<div class='text-premium-sub' style='font-family: monospace; font-weight: bold;'>{row.get('Nomor ND Tanggapan', '-')}</div>", unsafe_allow_html=True)
+                
+                cols[4].markdown(f"<span class='badge-tema-solid'>{row['Tema']}</span>", unsafe_allow_html=True)
+                cols[5].markdown(f"<div class='text-premium-sub'>{row['Topik']}</div>", unsafe_allow_html=True)
 
-            row_cell_style = "padding: 14px 0; text-align: center;"
-            row_text_style = "padding: 14px 0; text-align: left;"
+                with cols[6]:
+                    if st.button("🔍", key=f"btn_v_{idx}", use_container_width=True):
+                        st.session_state.selected_nd = row["Nomor ND Pemeriksaan"]
+                
+                with cols[7]:
+                    url = row.get("Dokumen Pendukung", "")
+                    if isinstance(url, str) and url.strip():
+                        st.markdown(f"<div style='text-align: center;'><a href='{url.strip()}' target='_blank' style='font-size: 22px; text-decoration: none;'>📂</a></div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown("<div style='text-align: center; color: #cbd5e1; font-size: 22px;'>-</div>", unsafe_allow_html=True)
+                
+                st.markdown("<div style='border-bottom: 1px solid #f1f5f9; margin: 15px 0;'></div>", unsafe_allow_html=True)
 
-            cols[0].markdown(
-                f"<div style='{row_cell_style}'>{display_num}</div>",
-                unsafe_allow_html=True,
-            )
-            cols[1].markdown(
-                f"<div style='{row_cell_style}'>{row['Tanggal']}</div>",
-                unsafe_allow_html=True,
-            )
-            cols[2].markdown(
-                f"<div style='{row_cell_style}'>{row['Instansi']}</div>",
-                unsafe_allow_html=True,
-            )
-            cols[3].markdown(
-                f"<div style='{row_cell_style}'>{row.get('Nomor ND Tanggapan', '-')}</div>",
-                unsafe_allow_html=True,
-            )
-            cols[4].markdown(
-                f"<div style='{row_cell_style}'>{row['Tema']}</div>",
-                unsafe_allow_html=True,
-            )
-            cols[5].markdown(
-                f"<div style='{row_text_style}'>{row['Topik']}</div>",
-                unsafe_allow_html=True,
-            )
-
-            with cols[6]:
-                st.markdown(
-                    "<div style='display:flex; justify-content:center; align-items:center; height:100%; padding: 14px 0;'>",
-                    unsafe_allow_html=True,
-                )
-                if st.button("🔍", key=f"detail_{display_num}"):
-                    st.session_state.selected_nd = row["Nomor ND Pemeriksaan"]
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            dokumen_url = row.get("Dokumen Pendukung", "")
-            if isinstance(dokumen_url, str) and dokumen_url.strip():
-                cols[7].markdown(
-                    f"<div style='{row_cell_style}'><a href='{dokumen_url.strip()}' target='_blank'>⬇️</a></div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                cols[7].markdown(f"<div style='{row_cell_style}'>-</div>", unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        pagination_cols = st.columns([1, 1, 1, 1])
-        with pagination_cols[0]:
-            if st.button("← Sebelumnya", key="pemeriksaan_prev", disabled=st.session_state.pemeriksaan_page == 1):
-                st.session_state.pemeriksaan_page = max(1, st.session_state.pemeriksaan_page - 1)
+        # 5. NAVIGATION
+        st.markdown("<br>", unsafe_allow_html=True)
+        n_col1, n_col2, n_col3 = st.columns([1, 2, 1])
+        with n_col1:
+            if st.button("← Previous", key="prev_p", disabled=st.session_state.pemeriksaan_page == 1, use_container_width=True):
+                st.session_state.pemeriksaan_page -= 1
                 st.rerun()
-        with pagination_cols[1]:
-            st.markdown(f"<div style='padding-top: 8px; text-align:center;'>Halaman {st.session_state.pemeriksaan_page} dari {total_pages}</div>", unsafe_allow_html=True)
-        with pagination_cols[2]:
-            if st.button("Berikutnya →", key="pemeriksaan_next", disabled=st.session_state.pemeriksaan_page == total_pages):
-                st.session_state.pemeriksaan_page = min(total_pages, st.session_state.pemeriksaan_page + 1)
+        with n_col2:
+            st.markdown(f"<div style='text-align: center; font-weight: 700; color: #1e293b; font-size: 16px; padding-top: 8px;'>Halaman {st.session_state.pemeriksaan_page} dari {total_pages}</div>", unsafe_allow_html=True)
+        with n_col3:
+            if st.button("Next →", key="next_p", disabled=st.session_state.pemeriksaan_page == total_pages, use_container_width=True):
+                st.session_state.pemeriksaan_page += 1
                 st.rerun()
-        with pagination_cols[3]:
-            st.markdown("<div></div>", unsafe_allow_html=True)
+
+        # ======================
+        # DETAIL PEMERIKSAAN
+        # ======================
+        # Karena detail sudah muncul via Popup (st.dialog), 
+        # kita hanya perlu memastikan state pilihan dibersihkan saat tidak digunakan.
+
+        if st.session_state.get("selected_nd"):
+            # Memanggil fungsi popup yang sudah kamu buat di bagian HELPERS
+            popup_detail_pemeriksaan(st.session_state.selected_nd)
+            
+            # Setelah popup tertutup/selesai, kita kosongkan pilihan agar tidak muncul terus-menerus
+            st.session_state.selected_nd = None
 
 # ======================
-# DETAIL PEMERIKSAAN
-# ======================
-
-    selected_nd = st.session_state.get("selected_nd")
-    if selected_nd:
-        # Get the main pemeriksaan row info
-        pemeriksaan_info = df.loc[df["Nomor ND Pemeriksaan"] == selected_nd].iloc[0] if not df.loc[df["Nomor ND Pemeriksaan"] == selected_nd].empty else None
-        
-        if pemeriksaan_info is not None:
-            # Detail findings data
-            detail_df = df.loc[
-                df["Nomor ND Pemeriksaan"] == selected_nd,
-                ["Temuan", "Kondisi/Rekomendasi", "Uraian", "Tanggapan PEKS IV"],
-            ].copy()
-
-            if not detail_df.empty:
-                detail_df = detail_df.astype(str)
-                for col in detail_df.columns:
-                    detail_df[col] = detail_df[col].apply(normalize_detail_text)
-
-                # Create detail card with header and close button
-                col_header_left, col_header_right = st.columns([10, 1])
-                
-                with col_header_left:
-                    st.markdown(f"""
-                    <style>
-                        .detail-card-header {{
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            border-radius: 12px;
-                            padding: 20px;
-                            margin-bottom: 20px;
-                            color: white;
-                            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-                        }}
-                        .detail-card-title {{
-                            font-size: 20px;
-                            font-weight: 700;
-                            margin: 0;
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                        }}
-                    </style>
-                    <div class="detail-card-header">
-                        <div class="detail-card-title">📋 Detail Pemeriksaan: {pemeriksaan_info['Topik']}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col_header_right:
-                    st.markdown("""
-                    <style>
-                        .col-button-red button {
-                            background-color: #ef4444 !important;
-                            color: white !important;
-                        }
-                        .col-button-red button:hover {
-                            background-color: #dc2626 !important;
-                        }
-                    </style>
-                    <div class="col-button-red" style="margin-top: 10px;">
-                    """, unsafe_allow_html=True)
-                    
-                    if st.button("✖ Tutup", key="btn_close_detail_pemeriksaan", use_container_width=True):
-                        st.session_state.selected_nd = None
-                        st.rerun()
-                    
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                # Display detail table in scrollable container
-                detail_html = detail_df.to_html(index=False, classes="detail-table", escape=False)
-                
-                st.markdown("""
-                <style>
-                    .detail-table-container {
-                        max-height: 500px;
-                        overflow-y: auto;
-                        border: 1px solid #e5e5e5;
-                        border-radius: 8px;
-                        padding-right: 5px;
-                        margin-top: 20px;
-                    }
-                    .detail-table-container::-webkit-scrollbar {
-                        width: 8px;
-                    }
-                    .detail-table-container::-webkit-scrollbar-track {
-                        background: #f1f1f1;
-                        border-radius: 8px;
-                    }
-                    .detail-table-container::-webkit-scrollbar-thumb {
-                        background: #c1c1c1;
-                        border-radius: 8px;
-                    }
-                    .detail-table-container::-webkit-scrollbar-thumb:hover {
-                        background: #888;
-                    }
-                    .detail-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-family: 'Segoe UI', Roboto, sans-serif;
-                        font-size: 13px;
-                    }
-                    .detail-table th {
-                        background-color: #059669;
-                        color: white;
-                        padding: 12px 14px;
-                        text-align: left;
-                        font-weight: 600;
-                        border: 1px solid #059669;
-                        text-transform: uppercase;
-                        font-size: 11px;
-                        letter-spacing: 0.5px;
-                        position: sticky;
-                        top: 0;
-                    }
-                    .detail-table td {
-                        padding: 14px 14px;
-                        border: 1px solid #e0e0e0;
-                        vertical-align: top;
-                        white-space: normal;
-                        word-wrap: break-word;
-                        overflow-wrap: break-word;
-                        text-align: left;
-                    }
-                    .detail-table tbody tr:nth-child(odd) td {
-                        background-color: #f8f9fa;
-                    }
-                    .detail-table tbody tr:nth-child(even) td {
-                        background-color: #ffffff;
-                    }
-                    .detail-table tbody tr:hover td {
-                        background-color: #f0f0f0 !important;
-                    }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"""<div class="detail-table-container">{detail_html}</div>""", unsafe_allow_html=True)
-
-# ======================
-# TLHP PEKS IV
+# TLHP PEKS IV - FULL PREMIUM UI
 # ======================
 if menu == "TLHP PEKS IV":
+    # 1. HERO HEADING (SAMA DENGAN DAFTAR PEMERIKSAAN)
     st.markdown(
         """
         <div class='page-section-card'>
             <div class='page-heading'>
-                <h1>Tindak Lanjut Hasil Pemeriksaan (TLHP) PEKS IV</h1>
-                <p>Daftar temuan yang harus ditindaklanjuti oleh Direktorat PEKS IV.</p>
+                <h1 style='font-size: 32px; font-weight: 800;'>Tindak Lanjut Hasil Pemeriksaan (TLHP)</h1>
+                <p style='font-size: 16px; color: #4b5563;'>Pemantauan realisasi rencana aksi dan validasi data dukung tindak lanjut hasil pengawasan secara akuntabel.</p>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("---")
-    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
 
-    # Filter dan display TLHP
-    col1, col2 = st.columns([8, 2])
-    with col1:
-        st.subheader("Daftar TLHP")
-        sort_tlhp_order = st.radio(
-            "Urutkan laporan",
-            ["Terbaru ke Terlama", "Terlama ke Terbaru"],
-            index=0,
-            horizontal=True,
-            key="sort_tlhp_order",
-            label_visibility="visible",
-        )
-    with col2:
-        st.markdown("""
-        <style>
-            .col-button-green button {
-                background-color: #10b981 !important;
-                color: white !important;
-            }
-            .col-button-green button:hover {
-                background-color: #059669 !important;
-            }
-        </style>
-        <div class="col-button-green">
-        """, unsafe_allow_html=True)
-        
-        if st.button("➕ Tambah TLHP", key="btn_tambah_tlhp", use_container_width=True):
-            st.session_state.show_tlhp_form = True
-            st.session_state.tlhp_form_mode = "add"
-        
+    # --- TOMBOL TAMBAH (POSISI ATAS) ---
+    col_btn_1, col_btn_2 = st.columns([8, 2])
+    with col_btn_2:
+        st.markdown("<div class='col-button-green'>", unsafe_allow_html=True)
+        # PASTIKAN memanggil fungsi popup_tambah_tlhp() di sini
+        if st.button("➕ Tambah TLHP", key="btn_tambah_tlhp_top", use_container_width=True):
+            popup_tambah_tlhp() 
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Form tambah TLHP
-    if "show_tlhp_form" not in st.session_state:
-        st.session_state.show_tlhp_form = False
-        st.session_state.tlhp_form_mode = "add"
 
-    if st.session_state.show_tlhp_form:
-        st.info("Tambah data TLHP baru")
+    # FILTER & SORTING
+    with st.container(border=True):
+        st.markdown("##### Filter Data")
+        sort_tlhp_order = st.radio("**Urutan Laporan:**", ["Terbaru ke Terlama", "Terlama ke Terbaru"], index=0, horizontal=True)
 
-        with st.form("form_tlhp"):
-            col1_f, col2_f, col3_f = st.columns(3)
-            
-            with col1_f:
-                nama_laporan = st.text_input("Nama Laporan", key="nama_laporan")
-                tgl_laporan = st.date_input("Tanggal Laporan", key="tgl_laporan")
-                tahun = st.number_input("Tahun", min_value=2000, max_value=2100, key="tahun_tlhp", step=1)
-                pengawas = st.text_input("Pengawas", key="pengawas")
+    st.markdown("<br>", unsafe_allow_html=True)
 
-            with col2_f:
-                temuan = st.text_area("Temuan", height=100, key="temuan_tlhp")
-                resuma_kondisi = st.text_area("Resuma Kondisi", height=100, key="resuma_kondisi")
-
-            with col3_f:
-                rekomendasi = st.text_area("Rekomendasi", height=100, key="rekomendasi")
-                kode_rekomendasi = st.text_input("Kode Rekomendasi", key="kode_rekomendasi")
-
-            st.markdown("---")
-
-            col1_f2, col2_f2, col3_f2 = st.columns(3)
-            
-            with col1_f2:
-                lead_uke_i = st.text_input("Lead UKE I", key="lead_uke_i")
-                lead_uke_ii = st.text_input("Lead UKE II", key="lead_uke_ii")
-                uke_ii_koordinasi = st.text_input("UKE II (Koordinasi)", key="uke_ii_koordinasi")
-                uke_i_koordinasi = st.text_input("UKE I (Koordinasi)", key="uke_i_koordinasi")
-
-            with col2_f2:
-                rencana_aksi = st.text_area("Rencana Aksi", height=100, key="rencana_aksi")
-                deadline = st.date_input("Deadline", key="deadline")
-
-            with col3_f2:
-                progress = st.text_area("Progress Pelaksanaan Rencana Aksi", height=100, key="progress")
-                data_dukung = st.text_input("Data Dukung (LinkPortal)", key="data_dukung")
-
-            st.markdown("---")
-
-            col1_f3, col2_f3, col3_f3 = st.columns(3)
-            
-            with col1_f3:
-                submit = st.checkbox("Submit", value=False, key="submit_tlhp")
-                tgl_submit = st.date_input("Tanggal Submit", key="tgl_submit") if submit else None
-
-            with col2_f3:
-                catatan_penyulut = st.text_area("Catatan Penyulut", height=80, key="catatan_penyulut")
-
-            with col3_f3:
-                catatan_eksternal = st.text_area("Catatan Eksternal", height=80, key="catatan_eksternal")
-                hasil_validasi = st.selectbox(
-                    "Hasil Validasi Pengawasan",
-                    ["", "Valid", "Perlu Perbaikan", "Ditolak"],
-                    key="hasil_validasi"
-                )
-                status = st.selectbox(
-                    "Status Penyelesaian",
-                    ["", "Belum Dimulai", "Sedang Berjalan", "Selesai", "Tertunda"],
-                    key="status_tlhp"
-                )
-
-            col_save_cancel = st.columns([1, 1, 3])
-            with col_save_cancel[0]:
-                save_tlhp = st.form_submit_button("Simpan", use_container_width=True)
-            with col_save_cancel[1]:
-                cancel_tlhp = st.form_submit_button("Batal", use_container_width=True)
-
-            if cancel_tlhp:
-                st.session_state.show_tlhp_form = False
-                st.rerun()
-
-            if save_tlhp:
-                if not nama_laporan.strip():
-                    st.error("Nama Laporan harus diisi.")
-                else:
-                    try:
-                        next_no = 1
-                        if not df_tlhp.empty:
-                            try:
-                                next_no = int(df_tlhp["No"].astype(str).str.extract(r"(\d+)")[0].max()) + 1
-                            except:
-                                next_no = len(df_tlhp) + 1
-
-                        new_tlhp_row = {
-                            "No": str(next_no),
-                            "Nama Laporan": nama_laporan,
-                            "Tgl Laporan": str(tgl_laporan),
-                            "Tahun": str(tahun),
-                            "Pengawas": pengawas,
-                            "Temuan": temuan,
-                            "Resuma Kondisi": resuma_kondisi,
-                            "Rekomendasi": rekomendasi,
-                            "Kode Rekomendasi": kode_rekomendasi,
-                            "Lead UKE I": lead_uke_i,
-                            "Lead UKE II": lead_uke_ii,
-                            "UKE II (Koordinasi)": uke_ii_koordinasi,
-                            "UKE I (Koordinasi)": uke_i_koordinasi,
-                            "Rencana Aksi": rencana_aksi,
-                            "Deadline": str(deadline),
-                            "Progress Pelaksanaan Rencana Aksi": progress,
-                            "Data Dukung (LinkPortal)": data_dukung,
-                            "Submit": "Ya" if submit else "Tidak",
-                            "Tgl Submit": str(tgl_submit) if tgl_submit else "",
-                            "Catatan Penyulut": catatan_penyulut,
-                            "Catatan Eksternal": catatan_eksternal,
-                            "Hasil Validasi Pengawasan": hasil_validasi,
-                            "Status Penyelesaian": status,
-                        }
-
-                        save_tlhp_row_to_csv(new_tlhp_row)
-                        df_tlhp = load_tlhp_data()
-                        df_tlhp.columns = df_tlhp.columns.str.strip()
-                        st.success("Data TLHP berhasil ditambahkan.")
-                        st.session_state.show_tlhp_form = False
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Gagal menyimpan data: {e}")
-
-    if "selected_tlhp_name" not in st.session_state:
-        st.session_state.selected_tlhp_name = None
-    if "selected_tlhp_no" not in st.session_state:
-        st.session_state.selected_tlhp_no = None
-
-    # Display TLHP Data
     if not df_tlhp.empty:
-        df_tlhp_display = df_tlhp.copy()
+        # Logika Summary & Sorting
+        df_tlhp_summary = df_tlhp.groupby("Nama Laporan", sort=False, as_index=False).first()
+        df_tlhp_summary["Tgl_Parsed"] = pd.to_datetime(df_tlhp_summary["Tgl Laporan"], errors="coerce")
+        asc_tlhp = False if sort_tlhp_order == "Terbaru ke Terlama" else True
+        df_tlhp_summary = df_tlhp_summary.sort_values("Tgl_Parsed", ascending=asc_tlhp).reset_index(drop=True)
 
-        display_cols = [
-            "Nama Laporan",
-            "Tgl Laporan",
-            "Tahun",
-            "Pengawas",
-            "Lead UKE II",
-            "UKE II (Koordinasi)",
-            "Deadline",
-            "Status Penyelesaian",
-        ]
-        available_cols = [col for col in display_cols if col in df_tlhp_display.columns]
+        # Pagination
+        if "tlhp_page" not in st.session_state: st.session_state.tlhp_page = 1
+        items_per_page = 10
+        total_p = max(1, (len(df_tlhp_summary) + items_per_page - 1) // items_per_page)
+        start_idx = (st.session_state.tlhp_page - 1) * items_per_page
+        page_df = df_tlhp_summary.iloc[start_idx : start_idx + items_per_page]
 
-        if "Nama Laporan" in available_cols:
-            group_cols = [col for col in available_cols if col != "Nama Laporan"]
-            agg_dict = {col: "first" for col in group_cols}
-            df_tlhp_summary = (
-                df_tlhp_display[["Nama Laporan"] + group_cols]
-                .groupby("Nama Laporan", sort=False, as_index=False)
-                .agg(agg_dict)
-            )
-
-            # Parse tanggal for sorting; fallback to string sort if parse fails
-            df_tlhp_summary["Tgl_Laporan_Parsed"] = pd.to_datetime(
-                df_tlhp_summary["Tgl Laporan"], errors="coerce"
-            )
-            if sort_tlhp_order == "Terbaru ke Terlama":
-                df_tlhp_summary = df_tlhp_summary.sort_values(
-                    ["Tgl_Laporan_Parsed", "Nama Laporan"],
-                    ascending=[False, True],
-                    na_position="last",
-                )
-            else:
-                df_tlhp_summary = df_tlhp_summary.sort_values(
-                    ["Tgl_Laporan_Parsed", "Nama Laporan"],
-                    ascending=[True, True],
-                    na_position="last",
-                )
-            df_tlhp_summary = df_tlhp_summary.reset_index(drop=True)
-            df_tlhp_summary.insert(0, "No", range(1, len(df_tlhp_summary) + 1))
-
-            if "tlhp_page" not in st.session_state:
-                st.session_state.tlhp_page = 1
-
-            items_per_page = 10
-            total_items = len(df_tlhp_summary)
-            total_pages = max(1, (total_items + items_per_page - 1) // items_per_page)
-            st.session_state.tlhp_page = min(max(1, st.session_state.tlhp_page), total_pages)
-
-            start_idx = (st.session_state.tlhp_page - 1) * items_per_page
-            end_idx = start_idx + items_per_page
-            page_df = df_tlhp_summary.iloc[start_idx:end_idx]
-
-            status_color = {
-                "Belum Dimulai": "#ef4444",
-                "Dalam Proses": "#fbbf24",
-                "Sedang Berjalan": "#f59e0b",
-                "Sedang Diusulkan Sesuai": "#3b82f6",
-                "Selesai": "#10b981",
-                "Tertunda": "#8b5cf6",
-            }
-
-            df_tlhp_summary = df_tlhp_summary.fillna("")
-
-            # CSS for table styling
-            st.markdown("""
-            <style>
-                .tlhp-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-family: "Segoe UI", Roboto, sans-serif;
-                    font-size: 14px;
-                    margin-bottom: 20px;
-                }
-                .tlhp-table th {
-                    background: #f5f5f5;
-                    padding: 14px 12px;
-                    text-align: left;
-                    font-weight: 600;
-                    color: #1a1a1a;
-                    border-bottom: 2px solid #e5e5e5;
-                }
-                .tlhp-table td {
-                    padding: 14px 12px;
-                    border-bottom: 1px solid #e5e5e5;
-                    color: #333;
-                }
-                .tlhp-table tbody tr:hover {
-                    background: #fafafa;
-                }
-                .tlhp-table tbody tr:last-child td {
-                    border-bottom: none;
-                }
-                .status-badge {
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    font-weight: 500;
-                    color: white;
-                    font-size: 12px;
-                    display: inline-block;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            status_color = {
-                "Belum Dimulai": "#ef4444",
-                "Dalam Proses": "#fbbf24",
-                "Sedang Berjalan": "#f59e0b",
-                "Sedang Diusulkan Sesuai": "#3b82f6",
-                "Selesai": "#10b981",
-                "Tertunda": "#8b5cf6",
-            }
-
-            st.markdown("""
-            <style>
-                .status-badge {
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    font-weight: 500;
-                    color: white;
-                    font-size: 12px;
-                    display: inline-block;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Create header using columns for proper alignment
-            header_cols = st.columns([0.35, 4.5, 1.0, 0.8, 1.0, 1.4, 1.4, 1.0, 1.0, 0.8])
-            
-            header_style = "font-weight: 600; color: #1a1a1a; font-size: 14px; text-align: center; padding: 10px 0; border-bottom: 2px solid #e5e5e5;"
-            
-            with header_cols[0]:
-                st.markdown(f"<div style='{header_style}; text-align: center;'>No</div>", unsafe_allow_html=True)
-            with header_cols[1]:
-                st.markdown(f"<div style='{header_style}; text-align: left;'>Nama Laporan</div>", unsafe_allow_html=True)
-            with header_cols[2]:
-                st.markdown(f"<div style='{header_style}'>Tgl Laporan</div>", unsafe_allow_html=True)
-            with header_cols[3]:
-                st.markdown(f"<div style='{header_style}'>Tahun</div>", unsafe_allow_html=True)
-            with header_cols[4]:
-                st.markdown(f"<div style='{header_style}'>Pengawas</div>", unsafe_allow_html=True)
-            with header_cols[5]:
-                st.markdown(f"<div style='{header_style}'>Lead UKE II</div>", unsafe_allow_html=True)
-            with header_cols[6]:
-                st.markdown(f"<div style='{header_style}'>UKE II (Koordinasi)</div>", unsafe_allow_html=True)
-            with header_cols[7]:
-                st.markdown(f"<div style='{header_style}'>Deadline</div>", unsafe_allow_html=True)
-            with header_cols[8]:
-                st.markdown(f"<div style='{header_style}'>Status</div>", unsafe_allow_html=True)
-            with header_cols[9]:
-                st.markdown(f"<div style='{header_style}'>Detail</div>", unsafe_allow_html=True)
-            
-            # Create rows with columns for button alignment
-            for index, row in page_df.iterrows():
-                try:
-                    status_val = str(row.get('Status Penyelesaian', '-') or '-')
-                    status_bg = status_color.get(status_val, '#6b7280')
-                    
-                    no = str(row.get('No', '-'))
-                    nama_laporan = str(row.get('Nama Laporan', '-'))
-                    tgl_laporan = str(row.get('Tgl Laporan', '-'))
-                    tahun = str(row.get('Tahun', '-'))
-                    pengawas = str(row.get('Pengawas', '-'))
-                    lead_uke_ii = str(row.get('Lead UKE II', '-'))
-                    uke_ii_koordinasi = str(row.get('UKE II (Koordinasi)', '-'))
-                    deadline = str(row.get('Deadline', '-'))
-                    
-                    # Create a row using columns
-                    row_cols = st.columns([0.35, 4.5, 1.0, 0.8, 1.0, 1.4, 1.4, 1.0, 1.0, 0.8])
-                    
-                    with row_cols[0]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{no}</div>", unsafe_allow_html=True)
-                    with row_cols[1]:
-                        st.markdown(f"<div style='padding: 14px 0;'>{nama_laporan}</div>", unsafe_allow_html=True)
-                    with row_cols[2]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{tgl_laporan}</div>", unsafe_allow_html=True)
-                    with row_cols[3]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{tahun}</div>", unsafe_allow_html=True)
-                    with row_cols[4]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{pengawas}</div>", unsafe_allow_html=True)
-                    with row_cols[5]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{lead_uke_ii}</div>", unsafe_allow_html=True)
-                    with row_cols[6]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{uke_ii_koordinasi}</div>", unsafe_allow_html=True)
-                    with row_cols[7]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'>{deadline}</div>", unsafe_allow_html=True)
-                    with row_cols[8]:
-                        st.markdown(f"<div style='text-align: center; padding: 14px 0;'><span class='status-badge' style='background: {status_bg};'>{status_val}</span></div>", unsafe_allow_html=True)
-                    with row_cols[9]:
-                        st.markdown(f"<div style='text-align: center;'>", unsafe_allow_html=True)
-                        if st.button("🔍", key=f"tlhp_detail_{index}", help="Lihat detail"):
-                            st.session_state.selected_tlhp_name = row.get('Nama Laporan', '')
-                            st.rerun()
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    
-                    # Add bottom border
-                    st.markdown("<div style='height: 0; border-bottom: 1px solid #e5e5e5; margin-bottom: -15px;'></div>", unsafe_allow_html=True)
-                    
-                except Exception as e:
-                    st.warning(f"Error processing row {index}: {str(e)}")
-                    continue
-
-            pagination_cols = st.columns([1, 1, 1, 1])
-            with pagination_cols[0]:
-                if st.button("← Sebelumnya", key="tlhp_prev", disabled=st.session_state.tlhp_page == 1):
-                    st.session_state.tlhp_page = max(1, st.session_state.tlhp_page - 1)
-                    st.rerun()
-            with pagination_cols[1]:
-                st.markdown(f"<div style='padding-top: 8px; text-align:center;'>Halaman {st.session_state.tlhp_page} dari {total_pages}</div>", unsafe_allow_html=True)
-            with pagination_cols[2]:
-                if st.button("Berikutnya →", key="tlhp_next", disabled=st.session_state.tlhp_page == total_pages):
-                    st.session_state.tlhp_page = min(total_pages, st.session_state.tlhp_page + 1)
-                    st.rerun()
-            with pagination_cols[3]:
-                st.markdown("<div></div>", unsafe_allow_html=True)
-
-        else:
-            st.warning("Kolom 'Nama Laporan' tidak ditemukan di data TLHP.")
-    else:
-        st.info("Belum ada data TLHP. Klik tombol 'Tambah TLHP' untuk menambahkan data baru.")
-
-    selected_name = st.session_state.selected_tlhp_name
-    if isinstance(selected_name, str) and selected_name.strip() and "Nama Laporan" in df_tlhp.columns:
-        selected_name = selected_name.strip()
-        detail_df = df_tlhp[df_tlhp["Nama Laporan"].astype(str).str.strip() == selected_name].copy()
-
-        detail_cols = [
-            "Temuan",
-            "Resuma Kondisi",
-            "Rekomendasi",
-            "Rencana Aksi",
-            "Lead UKE II",
-            "Deadline",
-            "Status Penyelesaian",
-            "Catatan Penyulut",
-            "Data Dukung (LinkPortal)",
-        ]
-
-        if "Status Penyelesaian" not in detail_df.columns:
-            detail_df["Status Penyelesaian"] = ""
-
-        detail_display_cols = [col for col in detail_cols if col in detail_df.columns]
-
-        # Create header and close button together
-        col_header_left, col_header_right = st.columns([10, 1])
-        
-        with col_header_left:
-            st.markdown("""
-            <style>
-                .detail-card-header {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 20px;
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-                }
-                .detail-card-title {
-                    font-size: 20px;
-                    font-weight: 700;
-                    margin: 0;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Display header with dynamic title
-            header_html = f'<div class="detail-card-header"><div class="detail-card-title">📋 Detail TLHP: {selected_name}</div></div>'
-            st.markdown(header_html, unsafe_allow_html=True)
-        
-        with col_header_right:
-            st.markdown("""
-            <style>
-                .col-button-red button {
-                    background-color: #ef4444 !important;
-                    color: white !important;
-                }
-                .col-button-red button:hover {
-                    background-color: #dc2626 !important;
-                }
-            </style>
-            <div class="col-button-red" style="margin-top: 10px;">
-            """, unsafe_allow_html=True)
-            
-            if st.button("✖ Tutup", key="btn_close_modal", use_container_width=True):
-                st.session_state.selected_tlhp_name = None
-                st.rerun()
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if not detail_df.empty and detail_display_cols:
-            detail_display = detail_df[detail_display_cols].copy()
-            detail_display = detail_display.rename(columns={
-                "Resuma Kondisi": "Resume Kondisi",
-                "Catatan Penyulut": "Catatan Inspektorat",
-                "Data Dukung (LinkPortal)": "Data Dukung",
-            })
-            
-            # Apply normalize to all columns
-            for col in detail_display.columns:
-                detail_display[col] = detail_display[col].apply(normalize_detail_text)
-            
-            # Create table styles
-            st.markdown("""
-            <style>
-                .detail-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-family: 'Segoe UI', Roboto, sans-serif;
-                    font-size: 13px;
-                    margin-top: 16px;
-                }
-                .detail-table th {
-                    background-color: #059669;
-                    color: white;
-                    padding: 12px 14px;
-                    text-align: left;
-                    font-weight: 600;
-                    border: 1px solid #059669;
-                    text-transform: uppercase;
-                    font-size: 11px;
-                    letter-spacing: 0.5px;
-                }
-                .detail-table td {
-                    padding: 14px 14px;
-                    border: 1px solid #e0e0e0;
-                    vertical-align: top;
-                    white-space: normal;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                    text-align: left;
-                }
-                .detail-table tbody tr:nth-child(odd) td {
-                    background-color: #f8f9fa;
-                }
-                .detail-table tbody tr:nth-child(even) td {
-                    background-color: #ffffff;
-                }
-                .detail-table tbody tr:hover td {
-                    background-color: #f0f0f0 !important;
-                }
-                .table-scroll-container {
-                    max-height: 500px;
-                    overflow-y: auto;
-                    overflow-x: auto;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                }
-                .table-scroll-container::-webkit-scrollbar {
-                    width: 8px;
-                    height: 8px;
-                }
-                .table-scroll-container::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 10px;
-                }
-                .table-scroll-container::-webkit-scrollbar-thumb {
-                    background: #888;
-                    border-radius: 10px;
-                }
-                .table-scroll-container::-webkit-scrollbar-thumb:hover {
-                    background: #555;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Convert to HTML table
-            detail_html = detail_display.to_html(index=False, classes="detail-table", escape=False)
-            
-            # Wrap table in scrollable container
-            scrollable_html = f"""
-            <div class="table-scroll-container">
-                {detail_html}
+        # HEADER TABEL SOLID NAVY
+        st.markdown("""
+            <div style='background-color: #1e3a8a; padding: 15px; border-radius: 10px 10px 0 0; border: 1px solid #1e3a8a;'>
+                <div style='display: flex; flex-direction: row; align-items: center;'>
+                    <div style='flex: 0.4; color: white; font-weight: 700; font-size: 13px; text-align: center;'>NO</div>
+                    <div style='flex: 4.0; color: white; font-weight: 700; font-size: 13px;'>NAMA LAPORAN</div>
+                    <div style='flex: 1.0; color: white; font-weight: 700; font-size: 13px; text-align: center;'>TAHUN</div>
+                    <div style='flex: 1.5; color: white; font-weight: 700; font-size: 13px;'>LEAD UKE II</div>
+                    <div style='flex: 1.2; color: white; font-weight: 700; font-size: 13px; text-align: center;'>STATUS</div>
+                    <div style='flex: 0.8; color: white; font-weight: 700; font-size: 13px; text-align: center;'>DETAIL</div>
+                </div>
             </div>
-            """
-            st.markdown(scrollable_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
+        # ISI DATA
+        # Pemetaan warna status yang diperbarui
+        status_colors = {
+            "Selesai": "#10b981",              # Hijau (Final)
+            "Sedang Diusulkan Sesuai": "#84cc16", # Lime/Hijau Kekuningan (Antara Oranye & Hijau)
+            "Dalam Proses": "#f59e0b",         # Oranye (Sedang dikerjakan)
+            "Sedang Berjalan": "#fbbf24",      # Kuning (Baru mulai)
+            "Belum Dimulai": "#ef4444",        # Merah (Belum ada aksi)
+            "Tertunda": "#8b5cf6"              # Ungu
+        }
+
+        for i, row in page_df.iterrows():
+            idx = start_idx + i + 1
+            s_val = str(row.get('Status Penyelesaian', '-') or '-')
+            s_bg = status_colors.get(s_val, '#64748b')
+
+            cols = st.columns([0.4, 4.0, 1.0, 1.5, 1.2, 0.8])
+            cols[0].markdown(f"<div style='text-align: center; font-weight: 700;'>{idx}</div>", unsafe_allow_html=True)
+            cols[1].markdown(f"<div style='font-weight: 700;'>{row['Nama Laporan']}</div>", unsafe_allow_html=True)
+            cols[2].markdown(f"<div style='text-align: center;'>{row['Tahun']}</div>", unsafe_allow_html=True)
+            cols[3].markdown(f"<div style='color: #1d4ed8; font-weight: 700;'>{row['Lead UKE II']}</div>", unsafe_allow_html=True)
+            cols[4].markdown(f"<div style='text-align: center;'><span style='background: {s_bg}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;'>{s_val}</span></div>", unsafe_allow_html=True)
+            
+            with cols[5]:
+                if st.button("🔍", key=f"tlhp_v_{idx}", use_container_width=True):
+                    popup_detail_tlhp(row['Nama Laporan']) # Langsung panggil popup
+
+            st.markdown("<div style='border-bottom: 1px solid #f1f5f9; margin: 15px 0;'></div>", unsafe_allow_html=True)
+
+        # NAVIGASI HALAMAN
+        n1, n2, n3 = st.columns([1, 2, 1])
+        with n1:
+            if st.button("← Previous", key="tlhp_prev", disabled=st.session_state.tlhp_page == 1):
+                st.session_state.tlhp_page -= 1
+                st.rerun()
+        with n2:
+            st.markdown(f"<div style='text-align: center; font-weight: 700;'>Halaman {st.session_state.tlhp_page} dari {total_p}</div>", unsafe_allow_html=True)
+        with n3:
+            if st.button("Next →", key="tlhp_next", disabled=st.session_state.tlhp_page == total_p):
+                st.session_state.tlhp_page += 1
+                st.rerun()
     else:
-        if st.session_state.selected_tlhp_name:
-            st.session_state.selected_tlhp_name = None
-            st.session_state.selected_tlhp_no = None
+        st.info("Belum ada data TLHP.")
 
 # ======================
-# TANYA AI SIERA (SMART ML + LOCAL REASONING)
+# AI SIERA (SMART & SECURE ENGINE) - SMART LOGIC FIX
 # ======================
 if menu == "AI SIERA":
-    st.markdown(
-        """
-        <div class='page-section-card'>
-            <div class='page-heading'>
-                <h1>🤖 Tanya AI SIERA</h1>
-                <p>Masukkan pertanyaan untuk mendapatkan jawaban dari AI SIERA.</p>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("<div class='chat-container'><div class='chat-form'>", unsafe_allow_html=True)
-    with st.form("ai_siera_form"):
-        query = st.text_area(
-            "",
-            value=st.session_state.get("ai_siera_query", ""),
-            placeholder="Ketik pertanyaan Anda...",
-            label_visibility="collapsed",
-            key="ai_siera_query",
-            height=140,
-        )
-        submit = st.form_submit_button("Send")
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # ======================
-    # PREPARE DATA (gabung + text)
-    # ======================
-    if "full_text" not in df.columns:
-        def build_text(row):
-            return " ".join([
-                str(row.get("Instansi", "")),
-                str(row.get("Tema", "")),
-                str(row.get("Topik", "")),
-                str(row.get("Temuan", "")),
-                str(row.get("Kondisi/Rekomendasi", "")),
-                str(row.get("Uraian", "")),
-                str(row.get("Tanggapan PEKS IV", "")),
-            ]).lower()
-
-        df["full_text"] = df.apply(build_text, axis=1)
-
-    # ======================
-    # TF-IDF MODEL (init sekali)
-    # ======================
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
 
-    if "vectorizer" not in st.session_state:
-        vectorizer = TfidfVectorizer(stop_words="english")
-        tfidf_matrix = vectorizer.fit_transform(df["full_text"])
+    current_user = st.session_state.get('username', 'peksiv')
 
-        st.session_state.vectorizer = vectorizer
-        st.session_state.tfidf_matrix = tfidf_matrix
-    else:
-        vectorizer = st.session_state.vectorizer
-        tfidf_matrix = st.session_state.tfidf_matrix
+    st.markdown(
+        """
+        <div class='page-section-card'>
+            <div class='page-heading'>
+                <h1 style='font-size: 32px; font-weight: 800;'>🛡️ AI SIERA (Smart & Secure Engine)</h1>
+                <p style='font-size: 16px; color: #4b5563;'>Asisten cerdas berbasis data untuk membantu akurasi status, substansi topik, dan monitoring hasil pemeriksaan.</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    # ======================
-    # INTENT DETECTION
-    # ======================
-    def detect_intent(q):
-        q = q.lower()
+    # --- CSS: LAYOUT & FIXED BUTTON ---
+    st.markdown("""
+        <style>
+            [data-testid="stChatMessageContainer"] { padding-bottom: 180px !important; }
+            
+            /* Bubble Chat Kanan-Kiri */
+            [data-testid="stChatMessage"] { padding: 1rem !important; border-radius: 15px !important; margin-bottom: 15px !important; max-width: 80% !important; display: flex !important; }
+            div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-user"]) { flex-direction: row-reverse !important; margin-left: auto !important; background-color: #dbeafe !important; border: 1px solid #bfdbfe !important; }
+            [data-testid="chatAvatarIcon-user"] { display: none !important; }
+            div[data-testid="stChatMessage"]:has(div[data-testid="chatAvatarIcon-assistant"]) { margin-right: auto !important; background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-left: 5px solid #1e3a8a !important; }
 
-        if any(x in q for x in ["berapa", "jumlah", "total"]):
-            return "count"
+            /* Fixed Floating Button */
+            .floating-clear-container { position: fixed; bottom: 95px; right: 50px; z-index: 1000000; }
+            .floating-clear-container button { background-color: white !important; border: 1px solid #cbd5e1 !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; color: #475569 !important; }
+            
+            /* Chat Input Contrast */
+            div[data-testid="stChatInput"] { background-color: #f1f5f9 !important; border: 2px solid #cbd5e1 !important; border-radius: 12px !important; }
+        </style>
+    """, unsafe_allow_html=True)
 
-        if any(x in q for x in ["ringkas", "summary", "kesimpulan"]):
-            return "summary"
+    df_ref = df.copy() 
+    df_monitoring = df_tlhp.copy() 
 
-        if any(x in q for x in ["isu", "masalah", "analisis", "kenapa"]):
-            return "analysis"
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-        return "search"
+    def siera_smart_brain(query):
+        q = query.lower().strip()
+        user_name = st.session_state.get('username', 'peksiv')
+        
+        # 1. KAMUS SINONIM SEDERHANA (Manual Synonyms)
+        synonyms = {
+            "progres": ["proses", "tindak lanjut", "jalan", "pelaksanaan"],
+            "stunting": ["tengkes", "gizi buruk", "anak"],
+            "mbg": ["makan bergizi gratis", "makan siang", "pangan"],
+            "anggaran": ["dana", "biaya", "keuangan"]
+        }
+        
+        # Ekspansi kueri berdasarkan sinonim
+        expanded_q = q
+        for key, vals in synonyms.items():
+            if key in q:
+                expanded_q += " " + " ".join(vals)
 
-    # ======================
-    # ML SEARCH
-    # ======================
-    def find_matches_ml(question, top_n=5):
-        question = question.lower()
+        # 2. LOGIKA MONITORING TLHP
+        is_all_tlhp = any(x in q for x in ["tlhp peks iv", "semua tlhp", "daftar tlhp", "tampilkan tlhp"])
+        is_process_query = any(x in q for x in ["tlhp proses", "tlhp progres", "sedang diproses"])
 
-        query_vec = vectorizer.transform([question])
-        similarity = cosine_similarity(query_vec, tfidf_matrix).flatten()
-
-        top_indices = similarity.argsort()[::-1][:top_n]
-
-        results = []
-        scores = []
-
-        for idx in top_indices:
-            if similarity[idx] > 0.1:
-                results.append(df.iloc[idx])
-                scores.append(similarity[idx])
-
-        return results, scores
-
-    # ======================
-    # LOCAL REASONING (NARASI)
-    # ======================
-    from collections import Counter
-
-    def generate_narrative(matches):
-        if not matches:
-            return "Tidak ditemukan data yang cukup untuk dianalisis."
-
-        tema_counter = Counter([str(r.get("Tema", "")).lower() for r in matches])
-        instansi_counter = Counter([str(r.get("Instansi", "")).lower() for r in matches])
-
-        top_tema = tema_counter.most_common(1)[0][0] if tema_counter else "-"
-        top_instansi = instansi_counter.most_common(1)[0][0] if instansi_counter else "-"
-
-        temuan_text = " ".join([str(r.get("Temuan", "")) for r in matches])
-        words = re.findall(r"\w+", temuan_text.lower())
-
-        common_words = [w for w, _ in Counter(words).most_common(10) if len(w) > 4]
-        isu = ", ".join(common_words[:5])
-
-        return f"""
-Berdasarkan hasil analisis AI terhadap data yang relevan, isu utama terkonsentrasi pada tema '{top_tema}' dengan dominasi instansi '{top_instansi}'.
-
-Pola permasalahan yang muncul berulang berkaitan dengan: {isu}.
-
-Hal ini mengindikasikan adanya kecenderungan permasalahan sistemik yang memerlukan penguatan pada aspek kebijakan, implementasi, serta pengendalian program.
-""".strip()
-
-    # ======================
-    # EXECUTION
-    # ======================
-    if query and not df.empty:
-
-        intent = detect_intent(query)
-
-        if intent == "count":
-            st.success(f"Jumlah data: {len(df)}")
-
-        else:
-            matches, scores = find_matches_ml(query)
-
-            st.markdown("### Jawaban AI SIERA")
-
-            if not matches:
-                st.warning("Tidak ditemukan data yang relevan.")
-
+        if is_all_tlhp or is_process_query or any(word in q for word in ["selesai", "rekomendasi"]):
+            if is_all_tlhp:
+                df_filtered = df_monitoring
+                narasi = f"Halo **{user_name}**, berikut adalah seluruh data **TLHP PEKS IV** yang tersedia:"
+            elif is_process_query:
+                df_filtered = df_monitoring[df_monitoring["Status Penyelesaian"].str.lower().isin(["dalam proses", "sedang diusulkan sesuai"])]
+                narasi = f"Halo **{user_name}**, ini adalah daftar TLHP yang berstatus **Dalam Proses** atau **Sedang Diusulkan Sesuai**:"
             else:
-                st.success(f"Ditemukan {len(matches)} hasil relevan")
+                target_status = ["selesai"] if "selesai" in q else ["dalam proses", "sedang diusulkan sesuai"]
+                df_filtered = df_monitoring[df_monitoring["Status Penyelesaian"].str.lower().isin(target_status)]
+                narasi = f"Halo **{user_name}**, berikut data TLHP dengan status terkait kueri Anda:"
 
-                # ======================
-                # AI NARRATIVE
-                # ======================
-                st.info(generate_narrative(matches))
+            if df_filtered.empty: 
+                return f"Maaf **{user_name}**, data TLHP tidak ditemukan.", None, "fail"
+            return narasi, df_filtered, "tlhp_detail_mode"
+            
+        # 3. LOGIKA DATABASE PEMERIKSAAN (DENGAN WEIGHTING)
+        else:
+            # PEMBERIAN BOBOT: Topik, Tema, dan Instansi diberikan pengulangan agar lebih diprioritaskan AI
+            df_ref["kb_text"] = df_ref.apply(lambda r: (
+                f"{r.get('Topik',' ')} " * 3 + 
+                f"{r.get('Tema',' ')} " * 2 + 
+                f"{r.get('Instansi',' ')} " + 
+                f"{r.get('Temuan',' ')} " + 
+                f"{r.get('Kondisi/Rekomendasi',' ')}"
+            ).lower(), axis=1)
+            
+            vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+            tfidf_matrix = vectorizer.fit_transform(df_ref["kb_text"])
+            query_vec = vectorizer.transform([expanded_q])
+            cos_sim = cosine_similarity(query_vec, tfidf_matrix).flatten()
+            
+            top_indices = cos_sim.argsort()[-3:][::-1]
+            matches = [df_ref.iloc[idx] for idx in top_indices if cos_sim[idx] > 0.05]
+            
+            if matches: 
+                return f"Halo **{user_name}**, berikut referensi database pemeriksaan yang relevan:", matches, "ref_mode"
+            return f"Maaf **{user_name}**, SIERA tidak menemukan data yang relevan. Coba gunakan kata kunci lain.", None, "fail"
 
-                # ======================
-                # RESULT DETAIL
-                # ======================
-                for i, (row, score) in enumerate(zip(matches, scores), 1):
-                    with st.expander(f"{i}. {row['Instansi']} | {row['Tema']} (Score: {round(score,2)})"):
+    # --- DISPLAY CHAT ---
+    for role, content in st.session_state.chat_history:
+        narasi, data, mode = content
+        with st.chat_message(role):
+            st.markdown(narasi)
+            if data is not None:
+                if mode == "tlhp_detail_mode":
+                    for lap in data["Nama Laporan"].unique():
+                        with st.expander(f"📋 {lap}"):
+                            for _, r in data[data["Nama Laporan"] == lap].iterrows():
+                                st.info(f"**Rekomendasi:** {r.get('Rekomendasi', '-')}")
+                                st.caption(f"📅 Deadline: {r.get('Deadline', '-')} | Status: {r.get('Status Penyelesaian', '-')}")
+                elif mode == "ref_mode":
+                    for r in data:
+                        with st.expander(f"🔍 {r.get('Instansi','-')} | {r.get('Tema','-')}"):
+                            st.markdown(f"**Topik:** {r.get('Topik', '-')}")
+                            st.markdown("---")
+                            st.write(f"**Temuan:** {r.get('Temuan', '-')}")
+                            st.markdown("---")
+                            st.info(f"**Kondisi/Rekomendasi:**\n{r.get('Kondisi/Rekomendasi', '-')}")
+                            st.success(f"**Tanggapan PEKS IV:**\n{r.get('Tanggapan PEKS IV', '-')}")
 
-                        st.markdown(f"**ND Pemeriksaan:** {row.get('ND_Pemeriksaan','')}")
-                        st.markdown(f"**Topik:** {row.get('Topik','')}")
+    # --- BRAIN LOGIC ---
+    if user_input := st.chat_input("Tanya SIERA..."):
+        st.session_state.chat_history.append(("user", (user_input, None, "user_msg")))
+        st.rerun()
 
-                        st.markdown("**Temuan:**")
-                        st.write(strip_html(row.get("Temuan","")))
+    if st.session_state.chat_history and st.session_state.chat_history[-1][0] == "user":
+        u_in = st.session_state.chat_history[-1][1][0]
+        with st.chat_message("assistant"):
+            with st.spinner("SIERA sedang berpikir..."):
+                resp = siera_smart_brain(u_in)
+                st.session_state.chat_history.append(("assistant", resp))
+        st.rerun()
 
-                        st.markdown("**Kondisi/Rekomendasi:**")
-                        st.write(strip_html(row.get("Kondisi/Rekomendasi","")))
-
-                        st.markdown("**Uraian:**")
-                        st.write(strip_html(row.get("Uraian","")))
-
-                        st.markdown("**Tanggapan PEKS IV:**")
-                        st.write(strip_html(row.get("Tanggapan PEKS IV","")))
-
-    if df.empty:
-        st.warning("Data belum tersedia.")
+    # --- FIXED FLOATING CLEAR BUTTON ---
+    st.markdown('<div class="floating-clear-container">', unsafe_allow_html=True)
+    if st.button("🗑️ Clear Chat", key="final_fixed_clear"):
+        st.session_state.chat_history = []
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
