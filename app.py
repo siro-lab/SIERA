@@ -930,7 +930,7 @@ with st.sidebar:
 
     menu = st.radio(
         "",
-        ["Beranda", "Daftar Pemeriksaan", "TLHP PEKS IV", "AI SIERA"],
+        ["Beranda", "Daftar Pemeriksaan", "TLHP PEKS IV", "Chatbot SIERA"],
     )
 
     st.markdown("<div class='sidebar-spacer'></div>", unsafe_allow_html=True)
@@ -1127,7 +1127,7 @@ if menu == "Beranda":
         <div class='dashboard-card'>
             <h3>Total Pemeriksaan</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah pemeriksaan unik yang tercatat</p>
+            <p class='metric-label'>Jumlah pemeriksaan yang tercatat</p>
         </div>
         """.format(total_pemeriksaan),
         unsafe_allow_html=True,
@@ -1145,9 +1145,9 @@ if menu == "Beranda":
     col3.markdown(
         """
         <div class='dashboard-card'>
-            <h3>Tema Unik</h3>
+            <h3>Tema</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah tema pemeriksaan berbeda</p>
+            <p class='metric-label'>Jumlah tema pemeriksaan</p>
         </div>
         """.format(total_tema),
         unsafe_allow_html=True,
@@ -1157,7 +1157,7 @@ if menu == "Beranda":
         <div class='dashboard-card'>
             <h3>Total TLHP</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah laporan TLHP yang tercatat</p>
+            <p class='metric-label'>Jumlah laporan Tindak Lanjut Hasil Pemeriksaan yang tercatat</p>
         </div>
         """.format(total_tlhp),
         unsafe_allow_html=True,
@@ -1208,12 +1208,12 @@ if menu == "Beranda":
         df1,
         x="Instansi",
         y="Jumlah",
-        color="Instansi",
         text="Jumlah",
-        color_discrete_sequence=px.colors.qualitative.Vivid,
+        # Ganti baris di bawah ini untuk menghilangkan warna-warni
+        color_discrete_sequence=["#1e3a8a"], 
         title="Pemeriksaan per Instansi",
     )
-    fig1.update_traces(textposition="outside")
+    fig1.update_traces(textposition="outside", marker_color="#1e3a8a") # Tambahkan marker_color
     fig1.update_layout(
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -1221,19 +1221,17 @@ if menu == "Beranda":
         xaxis_tickangle=-30,
         showlegend=False,
     )
-    fig1.update_xaxes(tickfont=dict(size=12))
-    fig1.update_yaxes(title_text="Jumlah")
 
     fig2 = px.bar(
         df2,
         x="Tema",
         y="Jumlah",
-        color="Tema",
         text="Jumlah",
-        color_discrete_sequence=px.colors.qualitative.Pastel,
+        # Gunakan biru yang lebih muda agar ada variasi tapi tetap senada
+        color_discrete_sequence=["#3b82f6"], 
         title="Pemeriksaan per Tema",
     )
-    fig2.update_traces(textposition="outside")
+    fig2.update_traces(textposition="outside", marker_color="#3b82f6") # Tambahkan marker_color
     fig2.update_layout(
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -1241,11 +1239,7 @@ if menu == "Beranda":
         xaxis_tickangle=-30,
         showlegend=False,
     )
-    fig2.update_xaxes(tickfont=dict(size=12))
-    fig2.update_yaxes(title_text="Jumlah")
 
-    st.markdown("<div class='dashboard-small-card'><h3 style='margin-bottom:16px;'>Pemeriksaan Terbaru</h3></div>", unsafe_allow_html=True)
-    st.markdown("---")
 
     if fig_line is not None:
         st.plotly_chart(fig_line, use_container_width=True)
@@ -1281,17 +1275,12 @@ if menu == "Beranda":
             orientation="h",
             text="Jumlah",
             color="Role",
-            color_discrete_map={"Lead UKE II": "#2563eb", "UKE II (Koordinasi)": "#8b5cf6"},
+            # Menggunakan skema biru korporat
+            color_discrete_map={
+                "Lead UKE II": "#1e3a8a",       # Navy Tua
+                "UKE II (Koordinasi)": "#64748b" # Abu-abu Biru (Slate)
+            },
             title="Jumlah Temuan berdasarkan Peran PEKS IV",
-        )
-        fig_role.update_traces(textposition="outside", marker_line_width=0)
-        fig_role.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=20, r=20, t=40, b=20),
-            showlegend=False,
-            xaxis_title="Jumlah",
-            yaxis_title="",
         )
 
         fig_status = px.pie(
@@ -1299,13 +1288,12 @@ if menu == "Beranda":
             names="Status",
             values="Jumlah",
             title="Status Tindak Lanjut TLHP PEKS IV",
-            color_discrete_sequence=["#f59e0b", "#3b82f6"],
-        )
-        fig_status.update_traces(textposition="inside", textinfo="percent+label")
-        fig_status.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=20, r=20, t=40, b=20),
+            color="Status",
+            # Gradasi biru: yang "Selesai" lebih gelap/solid, yang "Proses" lebih muda
+            color_discrete_map={
+                "Dalam Proses": "#93c5fd",           # Biru Muda (Sky)
+                "Sedang Diusulkan Sesuai": "#1e40af" # Biru Royal Tua
+            },
         )
 
         col7, col8 = st.columns([1, 1], gap="large")
@@ -1578,7 +1566,7 @@ if menu == "TLHP PEKS IV":
 # ======================
 # AI SIERA (SMART & SECURE ENGINE) - SMART LOGIC FIX
 # ======================
-if menu == "AI SIERA":
+if menu == "Chatbot SIERA":
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
 
@@ -1588,7 +1576,7 @@ if menu == "AI SIERA":
         """
         <div class='page-section-card'>
             <div class='page-heading'>
-                <h1 style='font-size: 32px; font-weight: 800;'>🛡️ AI SIERA (Smart & Secure Engine)</h1>
+                <h1 style='font-size: 32px; font-weight: 800;'>🛡️ Chatbot SIERA (Pencarian Data secara Cepat)</h1>
                 <p style='font-size: 16px; color: #4b5563;'>Asisten cerdas berbasis data untuk membantu akurasi status, substansi topik, dan monitoring hasil pemeriksaan.</p>
             </div>
         </div>
