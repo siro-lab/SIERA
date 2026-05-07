@@ -689,97 +689,152 @@ def get_next_temuan_number(nd_value, dataframe):
 # POPUP DIALOG FUNCTIONS
 # ======================
 
-@st.dialog("➕ Tambah Pemeriksaan Baru", width="large")
+@st.dialog("➕ Tambah Pemeriksaan/Pengawasan Baru", width="large")
 def popup_tambah_pemeriksaan():
-    # Gunakan variabel lokal agar tidak konflik dengan global
-    st.info("Tambah data pemeriksaan baru. Tambah temuan dan kondisi sesuai kebutuhan.")
+    # Bagian Input Umum tetap sama
+    st.info("Pilih jenis data, klik tambah, lalu isi form satu per satu.")
     
     col1f, col2f = st.columns(2)
     with col1f:
-        tgl = st.date_input("Tanggal", value=date.today())
-        inst = st.text_input("Instansi")
-        tm = st.text_input("Tema")
-        nd_p = st.text_input("Nomor ND Pemeriksaan")
-        nd_t = st.text_input("Nomor ND Tanggapan")
-        tpk = st.text_area("Topik", height=100)
-        dok = st.text_input("Dokumen Pendukung (URL)")
+        with st.container(border=True):
+            st.subheader("📋 Data Umum")
+            tgl = st.date_input("Tanggal", value=date.today())
+            inst = st.text_input("Instansi", key="pop_inst")
+            tm = st.text_input("Tema", key="pop_tema")
+            nd_p = st.text_input("Nomor ND Pemeriksaan", key="pop_ndp")
+            nd_t = st.text_input("Nomor ND Tanggapan", key="pop_ndt")
+            tpk = st.text_area("Topik", height=80, key="pop_tpk")
+            dok = st.text_input("Dokumen Pendukung (URL)", key="pop_dok")
 
     with col2f:
-        if st.button("➕ Tambah Temuan Baru"):
+        st.subheader("➕ Tambah Detail Data")
+        jenis_global = st.selectbox(
+            "Pilih Jenis Informasi:", 
+            ["Temuan", "Permindok dan Tanggapan"],
+            key="sel_jenis_p"
+        )
+        
+        # --- FIX 1: JANGAN PAKAI RERUN DI SINI ---
+        if st.button(f"Tambah {jenis_global}", use_container_width=True):
             st.session_state.new_findings.append({
-                "temuan": "",
-                "conditions": [{"kondisi": "", "uraian": "", "tanggapan": ""}]
+                "jenis": jenis_global, 
+                "konten_utama": "",
+                "conditions": [{"sub_judul": "", "uraian": "", "tanggapan": ""}]
             })
+            # Kita biarkan tanpa rerun. Streamlit akan re-render otomatis di dalam dialog.
 
-        for fi, finding in enumerate(st.session_state.new_findings):
-            with st.expander(f"Temuan {fi+1}", expanded=True):
-                finding["temuan"] = st.text_area("Temuan", value=finding["temuan"], key=f"p_temuan_{fi}")
-                for ci, condition in enumerate(finding["conditions"]):
-                    st.markdown(f"**Kondisi {ci+1}**")
-                    condition["kondisi"] = st.text_area("Kondisi", value=condition["kondisi"], key=f"p_kondisi_{fi}_{ci}")
-                    condition["uraian"] = st.text_area("Uraian", value=condition["uraian"], key=f"p_uraian_{fi}_{ci}")
-                    condition["tanggapan"] = st.text_area("Tanggapan", value=condition["tanggapan"], key=f"p_tanggapan_{fi}_{ci}")
-                
-                if st.button("➕ Tambah Kondisi", key=f"p_btn_cond_{fi}"):
-                    finding["conditions"].append({"kondisi": "", "uraian": "", "tanggapan": ""})
-                    st.rerun()
+        st.markdown("---")
 
-    if st.button("💾 Simpan Pemeriksaan", use_container_width=True, type="primary"):
-        if inst and nd_p:
+        # Container dinamis untuk form
+        form_container = st.container()
+        
+        with form_container:
+            if not st.session_state.new_findings:
+                st.info("Form kosong. Silakan klik tombol 'Tambah' di atas.")
+            else:
+                for fi, finding in enumerate(st.session_state.new_findings):
+                    prefix = "Temuan" if finding["jenis"] == "Temuan" else "Permindok"
+                    label_sub = "Kondisi/Rekomendasi" if finding["jenis"] == "Temuan" else "Tanggapan"
+                    
+                    with st.container(border=True):
+                        c1, c2 = st.columns([0.9, 0.1])
+                        c1.markdown(f"### 📍 {prefix} {fi+1}")
+                        
+                        # Tombol hapus baris (Rerun di sini aman karena tujuannya refresh indeks)
+                        if c2.button("❌", key=f"del_{fi}"):
+                            st.session_state.new_findings.pop(fi)
+                            st.rerun()
+                        
+                        finding["konten_utama"] = st.text_area(f"Isi {prefix}", value=finding["konten_utama"], key=f"p_utama_{fi}")
+                        
+                        for ci, condition in enumerate(finding["conditions"]):
+                            st.markdown(f"**{label_sub} {ci+1}**")
+                            with st.container(border=True):
+                                condition["sub_judul"] = st.text_area(f"Detail {label_sub}", value=condition["sub_judul"], key=f"p_sub_{fi}_{ci}")
+                                condition["uraian"] = st.text_area(f"Uraian {ci+1}", value=condition["uraian"], key=f"p_uraian_{fi}_{ci}")
+                                condition["tanggapan"] = st.text_area(f"Tanggapan PEKS IV {ci+1}", value=condition["tanggapan"], key=f"tang_{fi}_{ci}")
+                        
+                        # --- FIX 2: JANGAN PAKAI RERUN DI SINI JUGA ---
+                        if st.button(f"➕ Tambah {label_sub} Baru", key=f"btn_add_sub_{fi}"):
+                            st.session_state.new_findings[fi]["conditions"].append({
+                                "sub_judul": "", "uraian": "", "tanggapan": ""
+                            })
+                            # Tanpa rerun, Streamlit akan mendeteksi perubahan pada list
+
+    st.markdown("---")
+    # Simpan butuh rerun untuk menutup popup setelah sukses
+    if st.button("💾 SIMPAN DATA", use_container_width=True, type="primary"):
+        if inst and nd_p and st.session_state.new_findings:
             next_t = get_next_temuan_number(nd_p, df)
             for fi, finding in enumerate(st.session_state.new_findings, start=1):
                 id_t = f"{next_t + fi - 1}.0"
                 for ci, cond in enumerate(finding["conditions"], start=1):
                     new_row = {
                         "Tanggal": tgl.isoformat(), "Instansi": inst, "Tema": tm, "Topik": tpk,
+                        "Kategori Pemeriksaan/Pengawasan": finding["jenis"],
                         "Nomor ND Pemeriksaan": nd_p, "Nomor ND Tanggapan": nd_t, "ID_Temuan": id_t,
-                        "Temuan": finding["temuan"], "ID_Kondisi": f"{next_t + fi - 1}.{ci}",
-                        "Kondisi/Rekomendasi": cond["kondisi"], "Uraian": cond["uraian"],
-                        "Tanggapan PEKS IV": cond["tanggapan"], "Dokumen Pendukung": dok
+                        "Temuan": finding["konten_utama"],
+                        "ID_Kondisi": f"{next_t + fi - 1}.{ci}",
+                        "Kondisi/Rekomendasi": cond["sub_judul"],
+                        "Uraian": cond["uraian"],
+                        "Tanggapan PEKS IV": cond["tanggapan"],
+                        "Dokumen Pendukung": dok
                     }
                     save_row_to_csv(new_row)
-            st.success("Berhasil disimpan!")
+            
+            st.session_state.new_findings = []
+            st.success("Data Berhasil Disimpan!")
             st.rerun()
 
-@st.dialog("📋 Detail Pemeriksaan", width="large")
-def popup_detail_pemeriksaan(selected_nd):
-    # Ambil data dasar
-    p_info = df.loc[df["Nomor ND Pemeriksaan"] == selected_nd].iloc[0]
-    # Filter semua baris temuan untuk ND ini
-    det_df = df.loc[df["Nomor ND Pemeriksaan"] == selected_nd, 
-                    ["Temuan", "Kondisi/Rekomendasi", "Uraian", "Tanggapan PEKS IV"]].copy()
+@st.dialog("📄 Detail Pemeriksaan/Pengawasan", width="large")
+def popup_detail(row_data):
+    # 1. LOGIKA LABEL DINAMIS
+    kategori = row_data.get("Kategori Pemeriksaan/Pengawasan", "Temuan")
     
-    if not det_df.empty:
-        det_df = det_df.astype(str).map(normalize_detail_text)
+    if kategori == "Permindok dan Tanggapan":
+        label_utama = "Permindok"
+        label_kondisi = "Tanggapan"
+    else:
+        label_utama = "Temuan"
+        label_kondisi = "Kondisi/Rekomendasi"
+
+    st.subheader(f"📌 {row_data.get('Tema', 'Detail')}")
+    
+    # --- BAGIAN NO ND DIBEDAKAN ---
+    c1, c2, c3 = st.columns([1.5, 1, 1])
+    with c1:
+        st.markdown(f"**🏢 Instansi:**\n{row_data.get('Instansi', '-')}")
+        st.markdown(f"**📂 Topik:**\n{row_data.get('Topik', '-')}")
+    with c2:
+        st.markdown(f"**📅 Tanggal:**\n{row_data.get('Tanggal', '-')}")
+        st.markdown(f"**📄 ND Pemeriksaan:**\n{row_data.get('Nomor ND Pemeriksaan', '-')}")
+    with c3:
+        # Menambahkan pembeda eksplisit untuk ND Tanggapan
+        st.markdown(f"**✅ ND Tanggapan:**\n{row_data.get('Nomor ND Tanggapan', '-')}")
         
-        st.markdown(f"### {p_info['Topik']}")
-        st.markdown("---")
+    st.write("---")
+
+    # Tombol biru ID sudah dihapus dari sini agar tampilan lebih clean
+
+    col_left, col_right = st.columns(2)
+    with col_left:
+        st.markdown(f"🔍 **Isi {label_utama}**")
+        st.info(row_data.get('Temuan', '-'))
         
-        # Looping untuk memunculkan label TEMUAN 1, 2, dst
-        for i, (_, row) in enumerate(det_df.iterrows(), start=1):
-            # Badge Box Biru (Sama seperti gaya TLHP kamu)
-            st.markdown(f"""
-                <div style='background-color: #1e3a8a; color: white; padding: 5px 15px; border-radius: 5px; 
-                display: inline-block; font-weight: 700; margin-bottom: 10px;'>
-                    TEMUAN {i}
-                </div>
-            """, unsafe_allow_html=True)
-            
-            with st.container(border=True):
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.markdown("#### 🔍 Temuan")
-                    st.markdown(row["Temuan"], unsafe_allow_html=True)
-                    st.markdown("---")
-                    st.markdown("#### 💡 Kondisi/Rekomendasi")
-                    st.markdown(row["Kondisi/Rekomendasi"], unsafe_allow_html=True)
-                with col_b:
-                    st.markdown("#### 📝 Uraian")
-                    st.markdown(row["Uraian"], unsafe_allow_html=True)
-                    st.markdown("---")
-                    st.markdown("#### ✅ Tanggapan PEKS IV")
-                    st.markdown(row["Tanggapan PEKS IV"], unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"💡 **{label_kondisi}**")
+        st.warning(row_data.get('Kondisi/Rekomendasi', '-'))
+
+    with col_right:
+        st.markdown("📑 **Uraian Detail**")
+        st.write(row_data.get('Uraian', '-') if row_data.get('Uraian') else "-")
+        
+        st.write("") 
+        st.markdown("✅ **Tanggapan PEKS IV**")
+        st.success(row_data.get('Tanggapan PEKS IV', 'Belum ada tanggapan.'))
+
+    st.write("---")
+    if row_data.get('Dokumen Pendukung') and row_data.get('Dokumen Pendukung') not in ["-", ""]:
+        st.link_button("🔗 Lihat Dokumen Pendukung", row_data['Dokumen Pendukung'], use_container_width=True)
 
 @st.dialog("➕ Tambah TLHP Baru", width="large")
 def popup_tambah_tlhp():
@@ -930,7 +985,7 @@ with st.sidebar:
 
     menu = st.radio(
         "",
-        ["Beranda", "Daftar Pemeriksaan", "TLHP PEKS IV", "Chatbot SIERA"],
+        ["Beranda", "Permindok, TLHP, dan Tanggapan", "TLHP PEKS IV", "Chatbot SIERA"],
     )
 
     st.markdown("<div class='sidebar-spacer'></div>", unsafe_allow_html=True)
@@ -953,6 +1008,7 @@ EXPECTED_COLUMNS = [
     "Instansi",
     "Tema",
     "Topik",
+    "Kategori Pemeriksaan/Pengawasan", # <-- Tambahkan di sini
     "Nomor ND Pemeriksaan",
     "Nomor ND Tanggapan",
     "ID_Temuan",
@@ -1125,9 +1181,9 @@ if menu == "Beranda":
     col1.markdown(
         """
         <div class='dashboard-card'>
-            <h3>Total Pemeriksaan</h3>
+            <h3>Total Permindok/Tanggapan/TLHP</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah pemeriksaan yang tercatat</p>
+            <p class='metric-label'>Permintaan Dokumen (Permindok), Tanggapan, dan TLHP dari Pemeriksaan dan Pengawasan</p>
         </div>
         """.format(total_pemeriksaan),
         unsafe_allow_html=True,
@@ -1135,9 +1191,9 @@ if menu == "Beranda":
     col2.markdown(
         """
         <div class='dashboard-card'>
-            <h3>Instansi Terlibat</h3>
+            <h3>Instansi Pemeriksa dan Pengawas</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah instansi dalam data pemeriksaan</p>
+            <p class='metric-label'>Jumlah instansi yang melakukan pemeriksaan dan pengawasan</p>
         </div>
         """.format(total_instansi),
         unsafe_allow_html=True,
@@ -1147,7 +1203,7 @@ if menu == "Beranda":
         <div class='dashboard-card'>
             <h3>Tema</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah tema pemeriksaan</p>
+            <p class='metric-label'>Jumlah tema pemeriksaan dan pengawasan yang pernah dilaksanakan</p>
         </div>
         """.format(total_tema),
         unsafe_allow_html=True,
@@ -1157,7 +1213,7 @@ if menu == "Beranda":
         <div class='dashboard-card'>
             <h3>Total TLHP</h3>
             <p class='metric'>{}</p>
-            <p class='metric-label'>Jumlah laporan Tindak Lanjut Hasil Pemeriksaan yang tercatat</p>
+            <p class='metric-label'>Tindak Lanjut Hasil Pemeriksaan (TLHP) yang harus ditindaklanjuti PEKS IV</p>
         </div>
         """.format(total_tlhp),
         unsafe_allow_html=True,
@@ -1189,7 +1245,7 @@ if menu == "Beranda":
             df_month,
             x="Bulan",
             y="Jumlah",
-            title="Tren Pemeriksaan Bulanan",
+            title="Tren Permintaan Dokumen dan Tanggapan, serta TLHP dalam Pemeriksaan dan Pengawasan",
             markers=True,
             color_discrete_sequence=["#6366f1"],
         )
@@ -1211,7 +1267,7 @@ if menu == "Beranda":
         text="Jumlah",
         # Ganti baris di bawah ini untuk menghilangkan warna-warni
         color_discrete_sequence=["#1e3a8a"], 
-        title="Pemeriksaan per Instansi",
+        title="Pemeriksaan dan Pengawasan per Instansi",
     )
     fig1.update_traces(textposition="outside", marker_color="#1e3a8a") # Tambahkan marker_color
     fig1.update_layout(
@@ -1229,7 +1285,7 @@ if menu == "Beranda":
         text="Jumlah",
         # Gunakan biru yang lebih muda agar ada variasi tapi tetap senada
         color_discrete_sequence=["#3b82f6"], 
-        title="Pemeriksaan per Tema",
+        title="Pemeriksaan dan Pengawasan per Tema",
     )
     fig2.update_traces(textposition="outside", marker_color="#3b82f6") # Tambahkan marker_color
     fig2.update_layout(
@@ -1310,13 +1366,13 @@ if menu == "Beranda":
 # ======================
 # DAFTAR PEMERIKSAAN & FILTER (FINAL POSITION)
 # ======================
-if menu == "Daftar Pemeriksaan":
+if menu == "Permindok, TLHP, dan Tanggapan":
     st.markdown(
         """
         <div class='page-section-card'>
             <div class='page-heading'>
-                <h1 style='font-size: 32px; font-weight: 800;'>Daftar Pemeriksaan</h1>
-                <p style='font-size: 16px; color: #4b5563;'>Basis data koordinasi pemeriksaan, permintaan informasi, serta tindak lanjut Laporan Hasil Pemeriksaan (LHP).</p>
+                <h1 style='font-size: 32px; font-weight: 800;'>Daftar Permindok, TLHP, dan Tanggapan</h1>
+                <p style='font-size: 16px; color: #4b5563;'>Data hasil koordinasi pemeriksaan, permintaan informasi, dokumen, dan tanggapan, serta tindak lanjut laporan hasil pemeriksaan (TLHP) Pemeriksaan dan Pengawasan.</p>
             </div>
         </div>
         """,
@@ -1324,13 +1380,20 @@ if menu == "Daftar Pemeriksaan":
     )
 
     # --- TOMBOL TAMBAH (ATAS) ---
+    # Bagian ini tetap sama
     col_btn_1, col_btn_2 = st.columns([8, 2])
     with col_btn_2:
         st.markdown("<div class='col-button-green'>", unsafe_allow_html=True)
-        if st.button("➕ Tambah Pemeriksaan", key="btn_tambah_pemeriksaan_top", use_container_width=True):
-            if "new_findings" not in st.session_state:
-                st.session_state.new_findings = [{"temuan": "", "conditions": [{"kondisi": "", "uraian": "", "tanggapan": ""}]}]
+        
+        # Logika tombol yang sudah diperbaiki:
+        if st.button("➕ Tambah Data", key="btn_tambah_pemeriksaan_top", use_container_width=True):
+            # --- LANGKAH RESET DIMULAI DI SINI ---
+            st.session_state.new_findings = []  # <-- INI YANG BARU: Mengosongkan data lama
+            st.session_state.popup_open = True  # <-- INI YANG BARU: Menandai popup aktif
+            
+            # Baru panggil fungsinya
             popup_tambah_pemeriksaan()
+            
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- AREA FILTER DATA ---
@@ -1368,7 +1431,7 @@ if menu == "Daftar Pemeriksaan":
     with col_t:
         st.markdown("""
             <div style='margin-bottom: 10px;'>
-                <h2 style='color: #1e3a8a; margin: 0; font-size: 24px; font-weight: 800;'>📋 Data Pemeriksaan</h2>
+                <h2 style='color: #1e3a8a; margin: 0; font-size: 24px; font-weight: 800;'>📋 Data Permintaan Informasi dan Data, Tanggapan, dan TLHP Pemeriksaan dan Pengawasan</h2>
             </div>
         """, unsafe_allow_html=True)
     with col_d:
@@ -1429,7 +1492,10 @@ if menu == "Daftar Pemeriksaan":
             cols[5].write(r['Topik'])
             with cols[6]:
                 if st.button("🔍", key=f"btn_v_{idx}", use_container_width=True):
-                    st.session_state.selected_nd = r["Nomor ND Pemeriksaan"]
+             # Simpan data baris yang diklik ke session state
+                    st.session_state.selected_row_data = r.to_dict()
+                    st.session_state.show_popup_detail = True
+                    st.rerun() # Paksa refresh agar popup muncul
             with cols[7]:
                 url = r.get("Dokumen Pendukung", "")
                 if isinstance(url, str) and url.strip():
@@ -1448,11 +1514,19 @@ if menu == "Daftar Pemeriksaan":
             if st.button("Next →", key="next_p", disabled=st.session_state.pemeriksaan_page == total_pages):
                 st.session_state.pemeriksaan_page += 1
                 st.rerun()
+        
+        # Letakkan di paling bawah setelah blok pagination selesai
+            if st.session_state.get("show_popup_detail") and st.session_state.get("selected_row_data"):
+        # Panggil fungsi popup_detail yang sudah ada logika dinamisnya
+                popup_detail(st.session_state.selected_row_data)
+        
+        # Langsung reset agar tidak muncul terus-menerus
+        st.session_state.show_popup_detail = False
 
-    # Popup Detail Trigger
-    if st.session_state.get("selected_nd"):
-        popup_detail_pemeriksaan(st.session_state.selected_nd)
-        st.session_state.selected_nd = None
+        # Popup Detail Trigger
+        if st.session_state.get("selected_nd"):
+                popup_detail_pemeriksaan(st.session_state.selected_nd)
+                st.session_state.selected_nd = None
 
 # Tambahkan ini agar warna badge status muncul
 status_colors = {
